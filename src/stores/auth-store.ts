@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useEffect, useState } from "react";
 
 interface User {
   id: string;
@@ -93,9 +94,29 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "tenderflow-auth",
+      // Only persist auth data, NOT internal flags like _hasHydrated
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        isAuthenticated: state.isAuthenticated,
+        tenantId: state.tenantId,
+        role: state.role,
+      }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },
     }
   )
 );
+
+/**
+ * Hook that safely reads auth state only after client-side hydration.
+ * Returns null during SSR and initial hydration to prevent mismatches.
+ */
+export function useAuthHydrated() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+  return hydrated;
+}

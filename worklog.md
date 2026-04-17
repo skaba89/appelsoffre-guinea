@@ -58,3 +58,24 @@ Stage Summary:
 - Complete project with all modules, pages, services, infrastructure, tests, and documentation
 - All 14 modules implemented across backend and frontend
 - Conformity guards in place (professional contacts only, audit logging, tenant isolation, RBAC)
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Fix redirect loop ("redirigé à de trop nombreuses reprises")
+
+Work Log:
+- Investigated the auth flow across all layouts and pages
+- Identified root cause: Zustand `persist` middleware was persisting `_hasHydrated` to localStorage, causing hydration race conditions and inconsistent state between server/client renders
+- Identified secondary cause: Double navigation on demo login (router.push + useEffect redirect firing simultaneously)
+- Fixed `auth-store.ts`: Added `partialize` to exclude `_hasHydrated` from persisted state; added `useAuthHydrated` utility hook
+- Fixed `(app)/layout.tsx`: Replaced mounted + _hasHydrated double-gate with `canRender` state + `useRef` guard to prevent multiple redirect calls
+- Fixed `(auth)/login/page.tsx`: Removed `router.push` from `handleDemoLogin`, now relies solely on `useEffect` for navigation; added `useRef` guard against duplicate redirects
+- Fixed `(auth)/register/page.tsx`: Same pattern as login - removed `router.push`, added `useEffect` redirect + `useRef` guard
+- Fixed `page.tsx` (root landing): Added `useRef` guard against duplicate redirects
+- Rebuilt and verified all routes return HTTP 200 with no server-side redirects
+
+Stage Summary:
+- Redirect loop fixed by: (1) excluding `_hasHydrated` from localStorage persistence, (2) using `useRef` to prevent duplicate `router.replace` calls, (3) eliminating double-navigation on demo login
+- All 8 tested routes return 200 status code
+- No HTTP-level redirects occurring (confirmed via curl -L --max-redirs 0)

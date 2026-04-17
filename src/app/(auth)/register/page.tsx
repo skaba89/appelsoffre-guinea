@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,13 +11,30 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function RegisterPage() {
-  const { loginDemo } = useAuthStore();
+  const { loginDemo, isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
+  const navigateAttempted = useRef(false);
+
+  // Redirect if already authenticated (after hydration)
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated && !navigateAttempted.current) {
+      navigateAttempted.current = true;
+      router.replace("/dashboard");
+    }
+  }, [_hasHydrated, isAuthenticated, router]);
 
   const handleDemoRegister = () => {
+    // Only set auth state; useEffect handles navigation
     loginDemo();
-    router.push("/dashboard");
   };
+
+  if (_hasHydrated && isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Card className="border-border">

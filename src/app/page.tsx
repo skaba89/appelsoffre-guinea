@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Search, Target, Bot, Users, FileText, TrendingUp,
   Shield, Zap, Globe, ArrowRight, CheckCircle2,
@@ -44,10 +44,12 @@ const stats = [
 export default function LandingPage() {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
+  const redirectAttempted = useRef(false);
 
   useEffect(() => {
     // Only redirect after full hydration and confirmed authenticated
-    if (_hasHydrated && isAuthenticated) {
+    if (_hasHydrated && isAuthenticated && !redirectAttempted.current) {
+      redirectAttempted.current = true;
       router.replace("/dashboard");
     }
   }, [_hasHydrated, isAuthenticated, router]);

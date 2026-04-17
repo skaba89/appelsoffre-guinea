@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,28 +16,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const { loginDemo, isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
+  const navigateAttempted = useRef(false);
 
   // Redirect if already authenticated (after hydration)
   useEffect(() => {
-    if (_hasHydrated && isAuthenticated) {
+    if (_hasHydrated && isAuthenticated && !navigateAttempted.current) {
+      navigateAttempted.current = true;
       router.replace("/dashboard");
     }
   }, [_hasHydrated, isAuthenticated, router]);
 
   const handleDemoLogin = () => {
+    // Only set the auth state; the useEffect above will handle navigation
+    // This prevents double-navigation race condition
     loginDemo();
-    router.push("/dashboard");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // For now, demo login for any email/password
     handleDemoLogin();
   };
 
   // Don't render form until hydrated (avoid flash)
   if (!_hasHydrated) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[200px]">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -45,7 +49,7 @@ export default function LoginPage() {
 
   if (isAuthenticated) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[200px]">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );

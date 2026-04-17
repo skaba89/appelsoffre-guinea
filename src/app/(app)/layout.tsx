@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuthStore } from "@/stores/auth-store";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import AppLayout from "@/components/layout/app-layout";
 
 export default function AuthenticatedLayout({
@@ -12,21 +12,29 @@ export default function AuthenticatedLayout({
 }) {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const [canRender, setCanRender] = useState(false);
+  const redirectAttempted = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    // Wait for zustand persist to rehydrate from localStorage
+    if (!_hasHydrated) return;
 
-  useEffect(() => {
-    // Only redirect after hydration is complete to avoid flash redirects
-    if (_hasHydrated && !isAuthenticated) {
-      router.replace("/login");
+    if (!isAuthenticated) {
+      // Prevent multiple redirect calls
+      if (!redirectAttempted.current) {
+        redirectAttempted.current = true;
+        router.replace("/login");
+      }
+    } else {
+      // Auth is confirmed, allow rendering
+      redirectAttempted.current = false;
+      setCanRender(true);
     }
   }, [_hasHydrated, isAuthenticated, router]);
 
-  // Wait for client mount and hydration before deciding what to render
-  if (!mounted || !_hasHydrated) {
+  // While hydrating or not yet confirmed auth, show a loading spinner
+  if (!canRender || !_hasHydrated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
