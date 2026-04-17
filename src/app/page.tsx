@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Search, Target, Bot, Users, FileText, TrendingUp,
   Shield, Zap, Globe, ArrowRight, CheckCircle2,
@@ -42,16 +42,24 @@ const stats = [
 ];
 
 export default function LandingPage() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect after full hydration and confirmed authenticated
+    if (_hasHydrated && isAuthenticated) {
       router.replace("/dashboard");
     }
-  }, [isAuthenticated, router]);
+  }, [_hasHydrated, isAuthenticated, router]);
 
-  if (isAuthenticated) return null;
+  // Don't render landing content if authenticated (avoid flash)
+  if (_hasHydrated && isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

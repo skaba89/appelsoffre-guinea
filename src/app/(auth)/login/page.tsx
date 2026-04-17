@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,8 +14,15 @@ import { Separator } from "@/components/ui/separator";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { loginDemo, isAuthenticated } = useAuthStore();
+  const { loginDemo, isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
+
+  // Redirect if already authenticated (after hydration)
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [_hasHydrated, isAuthenticated, router]);
 
   const handleDemoLogin = () => {
     loginDemo();
@@ -26,6 +33,23 @@ export default function LoginPage() {
     e.preventDefault();
     handleDemoLogin();
   };
+
+  // Don't render form until hydrated (avoid flash)
+  if (!_hasHydrated) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Card className="border-border">

@@ -24,9 +24,11 @@ interface AuthState {
   isAuthenticated: boolean;
   tenantId: string | null;
   role: string | null;
+  _hasHydrated: boolean;
   setAuth: (data: { user: User; access_token: string }) => void;
   loginDemo: () => void;
   logout: () => void;
+  setHasHydrated: (v: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -37,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       tenantId: null,
       role: null,
+      _hasHydrated: false,
 
       setAuth: (data) => {
         const membership = data.user.memberships?.[0];
@@ -83,9 +86,16 @@ export const useAuthStore = create<AuthState>()(
           role: null,
         });
       },
+
+      setHasHydrated: (v: boolean) => {
+        set({ _hasHydrated: v });
+      },
     }),
     {
       name: "tenderflow-auth",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
