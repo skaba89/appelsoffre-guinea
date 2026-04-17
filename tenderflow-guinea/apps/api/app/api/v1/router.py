@@ -1,34 +1,42 @@
-"""
-TenderFlow Guinea — API V1 Router
-Includes all endpoint routers with prefix /api/v1
-"""
-
+"""TenderFlow Guinea — API v1 Router."""
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
-    auth_router,
-    users_router,
-    sources_router,
-    tenders_router,
-    documents_router,
-    crm_router,
-    prompts_router,
-    company_router,
-    alerts_router,
-    admin_router,
-    billing_router,
+    auth, users, sources, tenders, documents, crm,
+    prompts, company, alerts, admin, billing,
 )
 
 api_router = APIRouter(prefix="/api/v1")
 
-api_router.include_router(auth_router)
-api_router.include_router(users_router)
-api_router.include_router(sources_router)
-api_router.include_router(tenders_router)
-api_router.include_router(documents_router)
-api_router.include_router(crm_router)
-api_router.include_router(prompts_router)
-api_router.include_router(company_router)
-api_router.include_router(alerts_router)
-api_router.include_router(admin_router)
-api_router.include_router(billing_router)
+# Auth
+api_router.include_router(auth.router)
+
+# Users
+api_router.include_router(users.router)
+
+# Sources & Crawlers
+api_router.include_router(sources.router)
+
+# Tenders
+api_router.include_router(tenders.router)
+
+# Documents
+api_router.include_router(documents.router)
+
+# CRM
+api_router.include_router(crm.router)
+
+# Prompts
+api_router.include_router(prompts.router)
+
+# Company Profile
+api_router.include_router(company.router)
+
+# Alerts
+api_router.include_router(alerts.router)
+
+# Admin
+api_router.include_router(admin.router)
+
+# Billing
+api_router.include_router(billing.router)
