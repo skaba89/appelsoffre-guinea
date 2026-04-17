@@ -79,3 +79,26 @@ Stage Summary:
 - Redirect loop fixed by: (1) excluding `_hasHydrated` from localStorage persistence, (2) using `useRef` to prevent duplicate `router.replace` calls, (3) eliminating double-navigation on demo login
 - All 8 tested routes return 200 status code
 - No HTTP-level redirects occurring (confirmed via curl -L --max-redirs 0)
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Fix CORS font blocking and persistent redirect loop in iframe context
+
+Work Log:
+- Analyzed browser console errors: CORS font blocking (chat.z.ai origin loading from preview domain) + RSC redirect loop (ERR_TOO_MANY_REDIRECTS on /dashboard?_rsc=...)
+- Root cause 1: `next/font/google` (Geist) loads woff2 files blocked by CORS in iframe
+- Root cause 2: In iframe, localStorage may be blocked by third-party restrictions, preventing Zustand rehydration → `_hasHydrated` stays false → infinite loading or redirect loops
+- Root cause 3: `router.replace()` calls in useEffect cause RSC navigation loops in iframe context
+- Fix 1 - Fonts: Removed `next/font/google` imports, replaced with system font stack (ui-sans-serif, system-ui, etc.) in globals.css
+- Fix 2 - Auth store: Added `safeLocalStorage()` wrapper that detects blocked localStorage and provides no-op fallback; used `createJSONStorage` for safe persist storage
+- Fix 3 - Auth guard: Completely rewrote `(app)/layout.tsx` to render an inline login form instead of using `router.replace("/login")` — eliminates all RSC redirect loops
+- Fix 4 - Hydration timeout: Added 1.5s timeout fallback so app doesn't hang forever if Zustand can't hydrate
+- Fix 5 - All navigation: Replaced all `router.replace/push` with `window.location.href` for auth redirects — avoids RSC fetch loops
+- Verified: 14 routes return 200, no woff2 references in HTML, no HTTP redirects
+
+Stage Summary:
+- CORS font issue eliminated (no external font files loaded)
+- Redirect loop eliminated (no `router.replace` anywhere, inline login form for unauthenticated users)
+- iframe-safe localStorage handling (graceful fallback when blocked)
+- Hydration timeout prevents infinite loading state

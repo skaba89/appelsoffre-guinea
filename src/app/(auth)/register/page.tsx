@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FileText, ArrowRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,23 +10,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function RegisterPage() {
   const { loginDemo, isAuthenticated, _hasHydrated } = useAuthStore();
-  const router = useRouter();
-  const navigateAttempted = useRef(false);
-
-  // Redirect if already authenticated (after hydration)
-  useEffect(() => {
-    if (_hasHydrated && isAuthenticated && !navigateAttempted.current) {
-      navigateAttempted.current = true;
-      router.replace("/dashboard");
-    }
-  }, [_hasHydrated, isAuthenticated, router]);
 
   const handleDemoRegister = () => {
-    // Only set auth state; useEffect handles navigation
     loginDemo();
+    // Full page navigation to avoid RSC issues in iframe
+    window.location.href = "/dashboard";
   };
 
+  // If already authenticated, redirect via full page load
   if (_hasHydrated && isAuthenticated) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/dashboard";
+    }
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />

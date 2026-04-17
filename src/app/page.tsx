@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
-  Search, Target, Bot, Users, FileText, TrendingUp,
-  Shield, Zap, Globe, ArrowRight, CheckCircle2,
+  Search, Target, Bot, Users, FileText,
+  Zap, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,16 +42,13 @@ const stats = [
 
 export default function LandingPage() {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
-  const router = useRouter();
-  const redirectAttempted = useRef(false);
 
   useEffect(() => {
-    // Only redirect after full hydration and confirmed authenticated
-    if (_hasHydrated && isAuthenticated && !redirectAttempted.current) {
-      redirectAttempted.current = true;
-      router.replace("/dashboard");
+    // If authenticated, go to dashboard via full page load (no RSC redirect)
+    if (_hasHydrated && isAuthenticated) {
+      window.location.href = "/dashboard";
     }
-  }, [_hasHydrated, isAuthenticated, router]);
+  }, [_hasHydrated, isAuthenticated]);
 
   // Don't render landing content if authenticated (avoid flash)
   if (_hasHydrated && isAuthenticated) {

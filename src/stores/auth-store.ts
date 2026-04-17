@@ -1,8 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { useEffect, useState } from "react";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface User {
   id: string;
@@ -30,6 +29,26 @@ interface AuthState {
   loginDemo: () => void;
   logout: () => void;
   setHasHydrated: (v: boolean) => void;
+}
+
+/**
+ * Safe localStorage wrapper that handles:
+ * - SSR (no window)
+ * - Third-party iframe restrictions (localStorage blocked)
+ * - Quota exceeded errors
+ */
+function safeLocalStorage(): Storage | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    // Test if localStorage is actually accessible
+    const testKey = "__tf_test__";
+    localStorage.setItem(testKey, "1");
+    localStorage.removeItem(testKey);
+    return localStorage;
+  } catch {
+    // localStorage is blocked (e.g. third-party iframe)
+    return undefined;
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -102,21 +121,16 @@ export const useAuthStore = create<AuthState>()(
         tenantId: state.tenantId,
         role: state.role,
       }),
+      // Use safe localStorage that handles iframe restrictions
+      storage: createJSONStorage(() => safeLocalStorage() ?? {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      }),
       onRehydrateStorage: () => (state) => {
+        // Always mark as hydrated, even if rehydration failed
         state?.setHasHydrated(true);
       },
     }
   )
 );
-
-/**
- * Hook that safely reads auth state only after client-side hydration.
- * Returns null during SSR and initial hydration to prevent mismatches.
- */
-export function useAuthHydrated() {
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-  return hydrated;
-}

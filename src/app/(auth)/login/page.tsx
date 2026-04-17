@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FileText, Mail, Lock, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,39 +14,26 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { loginDemo, isAuthenticated, _hasHydrated } = useAuthStore();
-  const router = useRouter();
-  const navigateAttempted = useRef(false);
-
-  // Redirect if already authenticated (after hydration)
-  useEffect(() => {
-    if (_hasHydrated && isAuthenticated && !navigateAttempted.current) {
-      navigateAttempted.current = true;
-      router.replace("/dashboard");
-    }
-  }, [_hasHydrated, isAuthenticated, router]);
 
   const handleDemoLogin = () => {
-    // Only set the auth state; the useEffect above will handle navigation
-    // This prevents double-navigation race condition
     loginDemo();
+    // No router navigation needed — the (app)/layout.tsx auth guard
+    // will detect isAuthenticated and render the app layout.
+    // We just need to navigate to a route under (app) group.
+    window.location.href = "/dashboard";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // For now, demo login for any email/password
     handleDemoLogin();
   };
 
-  // Don't render form until hydrated (avoid flash)
-  if (!_hasHydrated) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
+  // If already authenticated, redirect to dashboard via full page load
+  // (avoids RSC router issues in iframe)
+  if (_hasHydrated && isAuthenticated) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/dashboard";
+    }
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
