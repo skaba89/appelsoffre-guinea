@@ -240,3 +240,102 @@ Stage Summary:
 - Advanced filtering with 7 dimensions and visual filter chips
 - Grid and list view toggle with sort options
 - 4-tab detail page with overview, scoring AI, documents, and history
+
+---
+Task ID: 7
+Agent: main-agent
+Task: Enhance analytics page with Prédictions IA section and prediction engine
+
+Work Log:
+- Created /home/z/my-project/src/lib/prediction-engine.ts — Complete prediction engine
+  - WinProbability interface: tender win probability with confidence intervals, key factors, recommendations
+  - TenderForecast interface: sector volume forecasts with confidence bands, monthly data, trend indicators
+  - OptimalPricing interface: price floor/optimal/ceiling by sector, margins, competitiveness scores, advice
+  - EmergingOpportunity interface: sector opportunity scoring, trend intensity, key regions, preparation level, compatibility
+  - CompetitorThreat interface: threat level/score, market share, active bids, advantages, vulnerabilities, counter-strategies
+  - PredictionResult interface: comprehensive prediction result combining all 5 analysis types
+  - ForecastMonth interface: monthly forecast data point with predicted/low/high values
+  - Guinea-specific data: SECTOR_VOLUME_HISTORY (4 quarters), COMPETITOR_PROFILES (4 competitor categories)
+  - predictWinProbabilities(): calculates win probability for top 5 tenders using sector fit, competition, budget, compatibility
+  - forecastSectorVolumes(): linear regression on historical data with 95% confidence intervals
+  - calculateOptimalPricings(): sector-specific pricing recommendations with margin targets
+  - identifyEmergingOpportunities(): sector opportunity detection with Guinea context (electrification, digital transformation, etc.)
+  - analyzeCompetitorThreats(): competitor analysis (Chinese consortiums, French firms, Turkish firms, local leaders)
+  - generatePrediction(): main function combining all 5 analyses with overall prediction score
+- Enhanced /home/z/my-project/src/app/(app)/analytics/page.tsx — Added Prédictions IA section
+  - WinProbabilityCard sub-component: tender win probability with progress bar, confidence interval, key factors, badge
+  - OptimalPricingCard sub-component: price range visualization with optimal marker, margin display, advice
+  - CompetitorThreatCard sub-component: threat level indicator, market share stats, vulnerabilities, counter-strategy
+  - "Prédictions IA" header section with Brain icon and "IA Active" animated badge
+  - Win probability cards for next 5 tenders (5-column grid)
+  - Sector forecast chart with AreaChart + confidence bands (aggregated monthly prediction)
+  - Sector forecast table with trend indicators (chevrons + gradient badges)
+  - Emerging opportunities radar (dual radar: opportunity score + compatibility)
+  - Emerging opportunities detail list with preparation level indicators
+  - Optimal pricing cards (4-column grid with scrollable container)
+  - Competitor threat analysis (4-column grid with severity colors)
+  - "Modèle prédictif" info card: methodology, data sources, limitations (3-column grid)
+  - All new sections use Framer Motion staggered animations
+  - All text in French
+  - Uses existing AnimatedCard, AnimatedCardContent, AnimatedCardHeader, GradientBadge, Progress, StatCard
+  - Uses Recharts (AreaChart, RadarChart, LineChart) for prediction visualizations
+  - Preserved all original analytics content (KPIs, revenue chart, sector performance, radar, benchmarking, ROI, insights)
+- No lint errors in new/modified files (verified with eslint)
+- Analytics page compiles and serves with HTTP 200
+
+Stage Summary:
+- Key results:
+  - /home/z/my-project/src/lib/prediction-engine.ts — Full prediction engine with 5 analysis types (win probability, sector forecast, optimal pricing, emerging opportunities, competitor threats)
+  - /home/z/my-project/src/app/(app)/analytics/page.tsx — Enhanced with complete "Prédictions IA" section featuring 7 new visual components
+- No lint errors in new files
+- TypeScript compiles successfully
+- Analytics page loads with HTTP 200
+
+---
+Task ID: 8
+Agent: main-agent
+Task: Create crawler/ETL automation system
+
+Work Log:
+- Created /home/z/my-project/src/lib/crawler-engine.ts — Complete crawler engine
+  - 18 Guinea tender sources defined (CRAWL_SOURCES): DNMP, SOGUIPAMI, ARTP, Ministère des Travaux Publics, Ministère de la Santé, Ministère de l'Énergie, Ministère de l'Éducation, AGUIPE, EDG, Banque Mondiale, BAD, Union Européenne, ONUDI, SEG Guinée, Ministère de l'Agriculture, Orange Guinée, UNOPS, PNUD
+  - Each source has: id, name, url, type (government/enterprise/international/media), sector, region, refreshInterval, status (active/paused/error/maintenance), description, health, icon
+  - CrawlSource, SourceHealth, CrawlResult, ETLStep, ETLPipelineResult interfaces
+  - HealthStatus type: "healthy" | "degraded" | "down" with color/label/bg utilities
+  - SourceType type with French labels and badge variants
+  - crawlSource(): simulates crawling a source and returns discovered tenders with realistic titles, budgets, deadlines
+  - TENDER_TITLES: 2-5 title templates per sector for realistic simulation
+  - classifyTender(): auto-classification by sector and region using keyword matching on title/description
+  - detectDuplicates(): duplicate detection algorithm using Jaccard similarity on titles + metadata comparison (authority, sector, region, budget overlap) with configurable threshold (0.65)
+  - createETLPipeline(): creates ETL pipeline execution with 6 steps (Extraction, Parsing, Classification, Déduplication, Enrichissement, Chargement)
+  - runETLPipeline(): executes full ETL pipeline returning ETLPipelineResult with step-by-step progress
+  - computeHealthStatus(): calculates health status from success rate and uptime metrics
+  - Utility functions: healthColor, healthBgColor, healthLabel, sourceTypeLabel, sourceTypeBadgeVariant, formatRelativeTime, formatResponseTime
+  - 16 sector-specific budget ranges in GNF
+  - Guinea-specific region keywords for classification
+- Enhanced /home/z/my-project/src/app/(app)/workflows/page.tsx — Added "Sources de veille" section
+  - Preserved all existing workflow pipeline visualization (5 workflows with expand/collapse)
+  - New "Sources de veille" header section with Activity icon, source count, tenders detected today
+  - Health summary pills: OK count (green), degraded count (amber), down count (red)
+  - "Lancer un scan" button that triggers simulated crawl of all active sources
+  - Global scan progress bar with percentage and source count
+  - SourceCard component: each source shows name, URL, type badge (GradientBadge), health dot indicator (animated ping for healthy), description, metrics grid (sector, success rate, last crawl), health bar with uptime %, crawl progress with animated progress bar, pipeline step indicators, action buttons (Scanner), response time, tender count, error count
+  - CrawlResultsSummary component: shows pipeline step completion, stats grid (new tenders, duplicates filtered, errors), discovered tender preview list with badges
+  - startCrawl(): per-source crawl simulation with progressive step completion, animated progress bar, and result generation
+  - startScanAll(): staggered crawl of all active sources with global progress tracking
+  - Collapsible sources grid (1/2/3 columns responsive)
+  - 18 source icon mappings from Lucide icons
+  - All text in French
+  - Uses AnimatedCard, GradientBadge, Progress, Badge, Button from shadcn/ui
+  - Uses Framer Motion for animations (AnimatePresence, motion.div, stagger variants)
+- No new lint errors introduced (verified with eslint)
+- Dev server serves /workflows with HTTP 200
+- Both files compile successfully with TypeScript
+
+Stage Summary:
+- Key results:
+  - /home/z/my-project/src/lib/crawler-engine.ts — Full crawler engine with 18 Guinea sources, ETL pipeline (6 steps), duplicate detection (Jaccard + metadata), auto-classification, health monitoring
+  - /home/z/my-project/src/app/(app)/workflows/page.tsx — Enhanced with "Sources de veille" section, per-source and global scan simulation, health indicators, crawl progress animation, results summary
+- No lint errors in new files
+- TypeScript compiles successfully
+- Workflows page loads with HTTP 200
