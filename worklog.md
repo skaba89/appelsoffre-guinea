@@ -478,3 +478,67 @@ Stage Summary:
 - Company profile with ScoreGauge and matching IA tab
 - Documents center with drag-and-drop, stats, and filters
 - Project now has 104 TypeScript/TSX files
+
+---
+Task ID: 12
+Agent: Main Agent
+Task: P3 Performance Optimizations + P4 Testing/CI-CD
+
+Work Log:
+- Updated next.config.ts with comprehensive performance configuration
+  - optimizePackageImports: lucide-react, date-fns, recharts, framer-motion, @tanstack/react-table, uuid
+  - Security headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-DNS-Prefetch-Control
+  - Static asset caching headers (1 year immutable)
+  - Image optimization: avif/webp formats, remote patterns
+  - Turbopack config for Next.js 16 compatibility (removed webpack config)
+  - Enabled reactStrictMode
+- Created src/components/lazy-components.tsx — Lazy loading wrappers
+  - LazyGuineaMap (SVG + Framer Motion, loaded only on dashboard)
+  - LazyAnalyticsCharts (recharts, loaded only on analytics page)
+  - LazyAIChat (markdown + syntax highlighting, loaded only on AI page)
+  - All with proper loading fallbacks and ssr: false
+- Created 12 loading.tsx files for streaming SSR on all routes
+  - /tenders/[id]/loading.tsx — TenderDetailSkeleton
+  - /crm/accounts/loading.tsx — TableSkeleton
+  - /crm/opportunities/loading.tsx — TableSkeleton
+  - /crm/contacts/loading.tsx — TableSkeleton
+  - /alerts/loading.tsx — TableSkeleton
+  - /billing/loading.tsx — Plan card skeletons
+  - /prompts/loading.tsx — TableSkeleton
+  - /documents/loading.tsx — Document card skeletons
+  - /workflows/loading.tsx — Workflow card skeletons
+  - /admin/loading.tsx — Generic card skeletons
+  - /company/loading.tsx — Form skeletons
+  - /settings/loading.tsx — Settings form skeletons
+- Created src/hooks/use-performance.ts — Web Vitals monitoring hook
+  - Tracks FCP, LCP, FID, CLS, TTFB, INP, page load, DOM content loaded
+  - Memory usage tracking (Chrome only)
+  - PerformanceLogger component for dev mode console logging
+  - Rating thresholds (good/needs-improvement/poor)
+  - PerformanceObserver integration
+- Added PerformanceLogger to root layout.tsx
+- Set up Vitest + React Testing Library
+  - vitest.config.ts with jsdom environment, path aliases, coverage config
+  - src/__tests__/setup.ts with mocks for Next.js router, next-themes, framer-motion
+  - Added test/test:watch/test:coverage scripts to package.json
+- Wrote 5 test suites (135 total tests, all passing)
+  - tenderflow-utils.test.ts: 55 tests (formatting, dates, labels, constants)
+  - rbac.test.ts: 22 tests (roles, permissions, categories, metadata)
+  - billing-engine.test.ts: 23 tests (plans, usage, limits, invoices)
+  - scoring-engine.test.ts: 24 tests (scoring, risks, recommendations, labels)
+  - export-engine.test.ts: 11 tests (CSV, JSON, reports, weekly summaries)
+- Created .github/workflows/ci.yml — GitHub Actions CI/CD pipeline
+  - Lint & Type Check job
+  - Unit Tests job with Node 18/20 matrix
+  - Coverage reporting with v8 provider
+  - Production Build job with standalone verification
+  - Bundle Analysis job (main branch only)
+  - Security Audit job
+- Production build verified: 22 routes, all compiling successfully
+- All 135 tests pass in 2.4 seconds
+
+Stage Summary:
+- P3 Performance: next.config.ts optimizations, lazy loading, 12 loading.tsx streaming skeletons, Web Vitals monitoring
+- P4 Testing: Vitest setup, 135 tests across 5 suites, 100% pass rate
+- P4 CI/CD: GitHub Actions pipeline with lint → test → build → analyze → security
+- Build verified: Turbopack compilation, 22 routes all OK
