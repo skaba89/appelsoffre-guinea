@@ -434,3 +434,47 @@ Stage Summary:
 - Enhanced alerts page with stats, filters, animations, and live simulation
 - Export engine supporting CSV, JSON, text reports
 - All lint checks pass, alerts page returns 200
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: P3 Premium pages — Landing, Auth, Company, Documents
+
+Work Log:
+- Rewrote /home/z/my-project/src/app/page.tsx — Premium landing page
+  - Animated hero section with Framer Motion (staggered entrance)
+  - GradientBadge animated tagline
+  - Background decorative blurs
+  - Trust indicators (Code Marchés Publics, Décret, Loi PPP, RGPD)
+  - 6 feature cards with gradient icons and hover effects
+  - "How It Works" section with 3 steps and step numbers
+  - Premium CTA section with gradient background
+  - Footer with links (conditions, confidentialité, contact)
+  - whileInView animations throughout
+- Rewrote /home/z/my-project/src/app/(auth)/layout.tsx — Split-screen auth layout
+  - Left panel (desktop): gradient branding with logo, tagline, feature pills
+  - Right panel: form content with animated entrance
+  - Responsive: single column on mobile, split on desktop
+- Rewrote /home/z/my-project/src/app/(app)/company/page.tsx — Premium company profile
+  - 3-tab layout: Informations, Références, Matching IA
+  - ScoreGauge integration for matching score
+  - Sector strength bars with animated fill
+  - Zone badges for geographic coverage
+  - IA recommendations with priority badges
+  - Reference cards with sector badges
+- Rewrote /home/z/my-project/src/app/(app)/documents/page.tsx — Enhanced document center
+  - Drag-and-drop upload zone with progress bar
+  - Stats row: total, indexed, pending, error counts
+  - Category filter bar + search
+  - Document cards with type icons (PDF/XLSX/ZIP/DOCX/IMG), status indicators
+  - Animated list with AnimatePresence
+  - CSV export for documents
+- All 18 routes verified returning HTTP 200
+- No lint errors in modified files
+
+Stage Summary:
+- Landing page with premium animations and trust indicators
+- Split-screen auth layout for desktop
+- Company profile with ScoreGauge and matching IA tab
+- Documents center with drag-and-drop, stats, and filters
+- Project now has 104 TypeScript/TSX files
