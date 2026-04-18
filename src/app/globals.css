@@ -433,3 +433,15 @@
 .dark ::selection {
   background: oklch(0.546 0.245 262.881 / 0.3);
 }
+
+/* Mobile safe area (iPhone notch/home indicator) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent overscroll bounce on mobile */
+@media (max-width: 1023px) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}
