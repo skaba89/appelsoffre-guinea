@@ -24,6 +24,8 @@ import {
   BarChart3,
   Workflow,
   MoreHorizontal,
+  Kanban,
+  SearchCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -37,6 +39,8 @@ import { motion, AnimatePresence } from "framer-motion";
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { name: "Appels d'offres", href: "/tenders", icon: Search },
+  { name: "Pipeline", href: "/pipeline", icon: Kanban },
+  { name: "Recherche", href: "/search", icon: SearchCheck },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "CRM", href: "/crm/accounts", icon: Users },
