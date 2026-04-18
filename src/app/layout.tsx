@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
+import { PerformanceLogger } from "@/hooks/use-performance";
 
 export const metadata: Metadata = {
   title: "TenderFlow Guinea — Veille intelligente des appels d'offres",
@@ -26,6 +27,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster />
+          <PerformanceLogger />
         </Providers>
       </body>
     </html>
