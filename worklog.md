@@ -396,3 +396,41 @@ Stage Summary:
 - Dark mode properly integrated (useTheme instead of manual DOM check)
 - Safe area support for iPhone
 - All lint checks pass
+
+---
+Task ID: 10
+Agent: Main Agent
+Task: P2 improvements — Real-time notifications, export engine, enhanced alerts
+
+Work Log:
+- Created /home/z/my-project/src/lib/notification-engine.ts
+  - Zustand-based notification store with 7 types
+  - NotificationType: deadline, new_tender, score, match, system, win, competitor
+  - Priority: critical, high, medium, low with color configs
+  - Real-time simulation mode (adds notification every 15s)
+  - 7 notification templates with Guinea-specific content
+  - 6 initial mock notifications
+  - Utility: notificationTypeConfig, priorityConfig, formatRelativeTime
+- Rewrote /home/z/my-project/src/app/(app)/alerts/page.tsx
+  - Stats row: total, unread, critical, today counts
+  - Filter bar: 6 filters (all, unread, critical, new_tender, deadline, competitor)
+  - Animated notification cards with AnimatePresence (layout + pop + exit)
+  - Type icon, badge, priority indicator per notification
+  - Unread dot indicator + primary left border
+  - Mark read on click, delete button
+  - Empty state with contextual message
+  - "Simu temps réel" toggle button for live notifications
+  - All text in French
+- Created /home/z/my-project/src/lib/export-engine.ts
+  - exportToCSV: full CSV export with BOM for Excel UTF-8
+  - exportToJSON: pretty-printed JSON export
+  - exportTenderReport: formatted text report for single tender
+  - exportWeeklySummary: comprehensive weekly summary report
+  - All with proper French formatting and Guinea branding
+  - Browser download via Blob + createObjectURL
+
+Stage Summary:
+- Real-time notification system with Zustand store
+- Enhanced alerts page with stats, filters, animations, and live simulation
+- Export engine supporting CSV, JSON, text reports
+- All lint checks pass, alerts page returns 200

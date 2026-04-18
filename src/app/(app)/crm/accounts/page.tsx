@@ -12,14 +12,17 @@ import {
   UserPlus,
   Briefcase,
   BarChart3,
+  Download,
 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { motionVariants, transitions, chartColors } from "@/lib/design-tokens";
 import { cn, formatCurrency } from "@/lib/tenderflow-utils";
+import { exportToCSV } from "@/lib/export-engine";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,14 +147,47 @@ export default function AccountsPage() {
             {formatCurrency(filtered.reduce((s, a) => s + a.opportunityValue, 0))} valeur pipeline
           </p>
         </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher une organisation..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 w-64 h-9"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher une organisation..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 w-64 h-9"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => {
+              exportToCSV({
+                format: "csv",
+                filename: "comptes-organisations",
+                data: filtered.map((a) => ({
+                  nom: a.name,
+                  secteur: a.sector,
+                  region: a.region,
+                  site_web: a.website,
+                  contacts: a.contactCount,
+                  valeur_pipeline: a.opportunityValue,
+                  actif: a.isActive ? "Oui" : "Non",
+                })),
+                columns: [
+                  { key: "nom", label: "Nom" },
+                  { key: "secteur", label: "Secteur" },
+                  { key: "region", label: "Région" },
+                  { key: "site_web", label: "Site web" },
+                  { key: "contacts", label: "Contacts" },
+                  { key: "valeur_pipeline", label: "Valeur pipeline (GNF)" },
+                  { key: "actif", label: "Actif" },
+                ],
+              });
+            }}
+          >
+            <Download className="w-3.5 h-3.5" /> Exporter
+          </Button>
         </div>
       </motion.div>
 
