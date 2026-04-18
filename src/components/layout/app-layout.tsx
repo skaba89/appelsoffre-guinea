@@ -22,6 +22,8 @@ import {
   Menu,
   X,
   FileText,
+  BarChart3,
+  Workflow,
 } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
@@ -34,6 +36,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { name: "Appels d'offres", href: "/tenders", icon: Search },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "CRM", href: "/crm/accounts", icon: Users },
   { name: "Assistant IA", href: "/ai", icon: Bot },
   { name: "Prompts", href: "/prompts", icon: FileCode },
