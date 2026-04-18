@@ -339,3 +339,60 @@ Stage Summary:
 - No lint errors in new files
 - TypeScript compiles successfully
 - Workflows page loads with HTTP 200
+
+---
+Task ID: 9
+Agent: Main Agent
+Task: P1 UI improvements — Interactive Guinea map, dark mode polish, skeleton loading, mobile UX
+
+Work Log:
+- Created /home/z/my-project/src/components/ui/guinea-map.tsx — Interactive SVG map component
+  - 8 administrative regions with simplified SVG paths (Boké, Conakry, Kindia, Labé, Mamou, Faranah, Kankan, Nzérékoré)
+  - Heat map coloring based on tender count with primary blue color scheme
+  - Framer Motion hover animations (scale, spring transitions)
+  - Click to select region with glow effect
+  - Hover tooltips showing region name and count
+  - Legend gradient bar (low to high AO count)
+  - Dark mode support via useTheme from next-themes
+  - Responsive SVG with auto-scaling
+- Updated /home/z/my-project/src/app/(app)/dashboard/page.tsx
+  - Replaced static MapPin grid + BarChart with interactive GuineaMap component
+  - Added selectedRegion state with detail panel (count, trend, top sectors)
+  - AnimatePresence for smooth region detail transitions
+  - Region data updated with lowercase IDs matching map component
+  - Added regionDetails lookup for per-region sector/trend data
+- Created /home/z/my-project/src/components/ui/page-skeleton.tsx — Comprehensive skeleton loading
+  - DashboardSkeleton: KPI cards, charts, map section
+  - TendersListSkeleton: filter bar, tender card grid
+  - TenderDetailSkeleton: header, tabs, content grid
+  - AnalyticsSkeleton: stats, charts, sections
+  - AIChatSkeleton: sidebar, chat bubbles, input area
+  - TableSkeleton: generic table with configurable rows/cols
+- Created loading.tsx for 4 main routes:
+  - /dashboard/loading.tsx → DashboardSkeleton
+  - /tenders/loading.tsx → TendersListSkeleton
+  - /analytics/loading.tsx → AnalyticsSkeleton
+  - /ai/loading.tsx → AIChatSkeleton
+- Updated /home/z/my-project/src/components/layout/app-layout.tsx
+  - Mobile bottom navigation bar with 5 items (Dashboard, Tenders, AI, Alerts, More)
+  - Animated active indicator using Framer Motion layoutId
+  - Sticky header with backdrop blur (bg-card/95 backdrop-blur-sm)
+  - Mounted state for theme toggle (avoids hydration mismatch)
+  - Mobile logo in header (hidden on desktop)
+  - Safe bottom padding for main content (pb-20 lg:pb-6)
+  - Improved Sheet width (w-72 for more room)
+- Updated /home/z/my-project/src/app/globals.css
+  - Added .safe-bottom class with env(safe-area-inset-bottom)
+  - Added overscroll-behavior-y: none for mobile
+- Updated /home/z/my-project/src/app/layout.tsx
+  - Added Viewport export with viewport-fit: cover for iPhone safe areas
+- Verified all 15 routes return HTTP 200
+- Committed locally (git push requires credentials)
+
+Stage Summary:
+- Interactive Guinea map replacing static region grid
+- Skeleton loading for 4 main pages
+- Mobile bottom navigation with animated active indicator
+- Dark mode properly integrated (useTheme instead of manual DOM check)
+- Safe area support for iPhone
+- All lint checks pass
