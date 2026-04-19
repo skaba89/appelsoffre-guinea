@@ -29,6 +29,7 @@ import {
   Heart,
   Calendar,
   GitCompareArrows,
+  History,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -55,6 +56,7 @@ const navigation = [
   { name: "Prompts", href: "/prompts", icon: FileCode },
   { name: "Documents", href: "/documents", icon: FolderOpen },
   { name: "Alertes", href: "/alerts", icon: Bell },
+  { name: "Activité", href: "/activity", icon: History },
   { name: "Profil entreprise", href: "/company", icon: Building2 },
   { name: "Paramètres", href: "/settings", icon: Settings },
 ];
