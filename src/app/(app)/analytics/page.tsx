@@ -38,6 +38,13 @@ import {
   type PredictionResult,
 } from "@/lib/prediction-engine";
 import { mockTenders } from "@/lib/mock-data";
+import { TenderFunnelChart } from "@/components/analytics/tender-funnel-chart";
+import { WinRateSectorChart } from "@/components/analytics/win-rate-sector-chart";
+import { BudgetDistributionChart } from "@/components/analytics/budget-distribution-chart";
+import { MonthlyTrendChart } from "@/components/analytics/monthly-trend-chart";
+import { RegionalHeatmapTable } from "@/components/analytics/regional-heatmap-table";
+import { CompetitorAnalysisCard } from "@/components/analytics/competitor-analysis-card";
+import { TimeToDecisionChart } from "@/components/analytics/time-to-decision-chart";
 
 // ===== COULEURS & STYLES =====
 const COLORS = {
@@ -256,6 +263,10 @@ export default function AnalyticsPage() {
             <TabsTrigger value="pricing" className="gap-1.5">
               <DollarSign className="h-3.5 w-3.5" />
               Prix optimaux
+            </TabsTrigger>
+            <TabsTrigger value="advanced" className="gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Statistiques avancées
             </TabsTrigger>
           </TabsList>
 
@@ -1370,6 +1381,52 @@ export default function AnalyticsPage() {
                   </AnimatedCardContent>
                 </AnimatedCard>
               </motion.div>
+            </motion.div>
+          </TabsContent>
+          {/* ═══════════════════════════════════════════════════════════ */}
+          {/* TAB 6 : Statistiques avancées */}
+          {/* ═══════════════════════════════════════════════════════════ */}
+          <TabsContent value="advanced">
+            <motion.div
+              className="space-y-6"
+              variants={motionVariants.staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Entonnoir + Taux de réussite */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={motionVariants.staggerItem}>
+                  <TenderFunnelChart />
+                </motion.div>
+                <motion.div variants={motionVariants.staggerItem}>
+                  <WinRateSectorChart />
+                </motion.div>
+              </div>
+
+              {/* Distribution budgétaire + Tendance mensuelle */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={motionVariants.staggerItem}>
+                  <BudgetDistributionChart />
+                </motion.div>
+                <motion.div variants={motionVariants.staggerItem}>
+                  <MonthlyTrendChart />
+                </motion.div>
+              </div>
+
+              {/* Tableau croisé régional */}
+              <motion.div variants={motionVariants.staggerItem}>
+                <RegionalHeatmapTable />
+              </motion.div>
+
+              {/* Analyse concurrentielle + Délai de décision */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={motionVariants.staggerItem}>
+                  <CompetitorAnalysisCard />
+                </motion.div>
+                <motion.div variants={motionVariants.staggerItem}>
+                  <TimeToDecisionChart />
+                </motion.div>
+              </div>
             </motion.div>
           </TabsContent>
         </Tabs>

@@ -55,6 +55,7 @@ import {
 import { GradientBadge } from "@/components/ui/gradient-badge";
 import { ScoreGauge } from "@/components/ui/score-gauge";
 import { ScoringTab } from "./scoring-tab";
+import { FavoriteButton } from "@/components/ui/favorite-button";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
@@ -380,6 +381,9 @@ export default function TenderDetailPage({
               delay={0.2}
             />
           </div>
+
+          {/* Favorite button */}
+          <FavoriteButton tenderId={tender.id} size="lg" />
 
           {/* Source link */}
           <Button variant="outline" className="shrink-0 gap-2" asChild>

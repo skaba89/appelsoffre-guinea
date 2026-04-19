@@ -30,6 +30,15 @@ import {
   Building2,
   Phone,
   AlertTriangle,
+  Webhook,
+  Palette,
+  Sun,
+  Moon,
+  Laptop,
+  FileJson,
+  Download,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -66,6 +75,8 @@ import {
   type AuditAction,
   type AuditEntry,
 } from "@/lib/audit-trail";
+import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 
@@ -894,6 +905,294 @@ function AuditTrailTab() {
   );
 }
 
+// ─── Intégrations Tab ──────────────────────────────────────────────────────────
+
+function IntegrationsTab() {
+  const [apiKeyName, setApiKeyName] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [exportFormat, setExportFormat] = useState("csv");
+  const [exportFrequency, setExportFrequency] = useState("weekly");
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
+
+  const MOCK_API_KEY = "tf_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6";
+
+  const handleCopyApiKey = () => {
+    navigator.clipboard.writeText(MOCK_API_KEY);
+    toast.success("Clé API copiée dans le presse-papiers");
+  };
+
+  return (
+    <motion.div variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+      {/* Webhooks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Webhook className="w-4 h-4" /> Webhooks
+          </CardTitle>
+          <CardDescription>Recevez des notifications en temps réel vers vos systèmes externes</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Activer les webhooks</p>
+              <p className="text-xs text-muted-foreground">Envoyer des événements vers votre endpoint</p>
+            </div>
+            <Switch checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
+          </div>
+          {webhookEnabled && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="webhook-url">URL du webhook</Label>
+                <Input
+                  id="webhook-url"
+                  placeholder="https://votre-serveur.gn/webhooks/tenderflow"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Événements</Label>
+                <div className="space-y-2">
+                  {[
+                    { id: "evt_new", label: "Nouvel appel d'offres", desc: "Quand un nouvel AO est détecté" },
+                    { id: "evt_score", label: "Score mis à jour", desc: "Quand un score IA est recalculé" },
+                    { id: "evt_deadline", label: "Échéance proche", desc: "Quand une échéance approche" },
+                    { id: "evt_status", label: "Changement de statut", desc: "Quand le statut d'un AO change" },
+                  ].map((evt) => (
+                    <div key={evt.id} className="flex items-center justify-between py-1.5">
+                      <div>
+                        <p className="text-sm text-foreground">{evt.label}</p>
+                        <p className="text-xs text-muted-foreground">{evt.desc}</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="gap-2" asChild>
+                <a href="/settings/webhooks">
+                  <ExternalLink className="w-3.5 h-3.5" /> Gérer les webhooks
+                </a>
+              </Button>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* API Access */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Key className="w-4 h-4" /> Clé API
+          </CardTitle>
+          <CardDescription>Accédez à l'API TenderFlow pour intégrer vos outils</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="api-key-name">Nom de la clé</Label>
+            <div className="flex gap-2">
+              <Input
+                id="api-key-name"
+                value={apiKeyName}
+                onChange={(e) => setApiKeyName(e.target.value)}
+                placeholder="Ex : Script de veille"
+              />
+              <Button variant="outline" className="shrink-0">Créer</Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Clé API existante</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-9 bg-muted rounded-md px-3 flex items-center font-mono text-xs text-muted-foreground overflow-hidden">
+                {showApiKey ? MOCK_API_KEY : "••••••••••••••••••••••••••••••••••"}
+              </div>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setShowApiKey(!showApiKey)}>
+                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={handleCopyApiKey}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <a href="/admin/api-docs">
+              <FileJson className="w-3.5 h-3.5" /> Documentation API
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Export Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="w-4 h-4" /> Paramètres d'export
+          </CardTitle>
+          <CardDescription>Configurez le format et la fréquence des exports automatiques</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Format par défaut</Label>
+              <Select value={exportFormat} onValueChange={setExportFormat}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Fréquence d'export automatique</Label>
+              <Select value={exportFrequency} onValueChange={setExportFrequency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Quotidien</SelectItem>
+                  <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                  <SelectItem value="monthly">Mensuel</SelectItem>
+                  <SelectItem value="never">Jamais (manuel uniquement)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button className="gap-2" onClick={() => toast.success("Paramètres d'intégration sauvegardés")}>
+            <Save className="w-4 h-4" /> Sauvegarder
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// ─── Apparence Tab ─────────────────────────────────────────────────────────────
+
+function ApparenceTab() {
+  const { theme, setTheme } = useTheme();
+  const [density, setDensity] = useState("comfortable");
+  const [language, setLanguage] = useState("fr");
+
+  return (
+    <motion.div variants={tabVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+      {/* Theme mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="w-4 h-4" /> Mode d'affichage
+          </CardTitle>
+          <CardDescription>Choisissez l'apparence de l'interface</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: "light", icon: Sun, label: "Clair", desc: "Thème clair classique" },
+              { value: "dark", icon: Moon, label: "Sombre", desc: "Thème sombre pour le confort" },
+              { value: "system", icon: Laptop, label: "Système", desc: "S'adapte à votre OS" },
+            ].map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => setTheme(mode.value)}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  theme === mode.value
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <mode.icon className={`w-6 h-6 ${theme === mode.value ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="text-center">
+                  <p className={`text-sm font-medium ${theme === mode.value ? "text-primary" : "text-foreground"}`}>{mode.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{mode.desc}</p>
+                </div>
+                {theme === mode.value && (
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Density */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Monitor className="w-4 h-4" /> Densité de l'interface
+          </CardTitle>
+          <CardDescription>Ajustez l'espacement des éléments selon vos préférences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { value: "compact", label: "Compact", desc: "Plus d'informations à l'écran", spacing: "p-2 text-xs gap-1" },
+              { value: "comfortable", label: "Confortable", desc: "Espacement généreux pour le confort", spacing: "p-4 text-sm gap-3" },
+            ].map((d) => (
+              <button
+                key={d.value}
+                onClick={() => setDensity(d.value)}
+                className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all ${
+                  density === d.value
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                {/* Preview box */}
+                <div className={`w-full bg-muted/50 rounded-lg border border-border ${d.spacing}`}>
+                  <div className="font-medium text-foreground">Titre exemple</div>
+                  <div className="text-muted-foreground">Description</div>
+                </div>
+                <div className="text-center">
+                  <p className={`text-sm font-medium ${density === d.value ? "text-primary" : "text-foreground"}`}>{d.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{d.desc}</p>
+                </div>
+                {density === d.value && (
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Language */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Globe className="w-4 h-4" /> Langue
+          </CardTitle>
+          <CardDescription>Langue d'affichage de l'interface</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="w-full md:w-[280px]">
+              <Globe className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fr">🇫🇷 Français</SelectItem>
+              <SelectItem value="en">🇬🇧 English</SelectItem>
+              <SelectItem value="pt">🇵🇹 Português</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            La langue par défaut des appels d'offres reste le français, conformément à la réglementation guinéenne.
+          </p>
+          <Button className="gap-2" onClick={() => toast.success("Paramètres d'apparence sauvegardés")}>
+            <Save className="w-4 h-4" /> Sauvegarder
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 // ─── Main Settings Page ───────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -928,6 +1227,14 @@ export default function SettingsPage() {
             <ScrollText className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Journal d'audit</span>
           </TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-1.5 text-xs sm:text-sm">
+            <Webhook className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Intégrations</span>
+          </TabsTrigger>
+          <TabsTrigger value="apparence" className="gap-1.5 text-xs sm:text-sm">
+            <Palette className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Apparence</span>
+          </TabsTrigger>
         </TabsList>
 
         <div className="mt-4">
@@ -955,6 +1262,16 @@ export default function SettingsPage() {
             {activeTab === "audit" && (
               <TabsContent key="audit" value="audit" forceMount>
                 <AuditTrailTab />
+              </TabsContent>
+            )}
+            {activeTab === "integrations" && (
+              <TabsContent key="integrations" value="integrations" forceMount>
+                <IntegrationsTab />
+              </TabsContent>
+            )}
+            {activeTab === "apparence" && (
+              <TabsContent key="apparence" value="apparence" forceMount>
+                <ApparenceTab />
               </TabsContent>
             )}
           </AnimatePresence>

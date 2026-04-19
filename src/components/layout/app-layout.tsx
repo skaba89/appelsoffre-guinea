@@ -26,6 +26,9 @@ import {
   MoreHorizontal,
   Kanban,
   SearchCheck,
+  Heart,
+  Calendar,
+  GitCompareArrows,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -39,9 +42,13 @@ import { motion, AnimatePresence } from "framer-motion";
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { name: "Appels d'offres", href: "/tenders", icon: Search },
+  { name: "Comparaison", href: "/comparison", icon: GitCompareArrows },
+  { name: "Favoris", href: "/favorites", icon: Heart },
+  { name: "Calendrier", href: "/calendar", icon: Calendar },
   { name: "Pipeline", href: "/pipeline", icon: Kanban },
   { name: "Recherche", href: "/search", icon: SearchCheck },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Rapports", href: "/reports", icon: FileText },
   { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "CRM", href: "/crm/accounts", icon: Users },
   { name: "Assistant IA", href: "/ai", icon: Bot },
@@ -285,7 +292,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">
+        <main id="main-content" className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">
           {children}
         </main>
       </div>

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
 import { PerformanceLogger } from "@/hooks/use-performance";
+import { SkipNav } from "@/components/ui/skip-nav";
 
 export const metadata: Metadata = {
   title: "TenderFlow Guinea — Veille intelligente des appels d'offres",
@@ -25,6 +26,7 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
         <Providers>
+          <SkipNav />
           {children}
           <Toaster />
           <PerformanceLogger />

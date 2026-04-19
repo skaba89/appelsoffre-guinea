@@ -1,16 +1,20 @@
 "use client";
 
 import { useAuthStore } from "@/stores/auth-store";
-import { useEffect, useState } from "react";
+import { useOnboardingStore } from "@/stores/onboarding-store";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import AppLayout from "@/components/layout/app-layout";
 import {
-  FileText, Zap, Mail, Lock, ArrowRight,
+  FileText, Zap, Mail, Lock, ArrowRight, Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { motion, AnimatePresence } from "framer-motion";
+import { KeyboardShortcutsDialog } from "@/components/ui/keyboard-shortcuts-dialog";
 
 /**
  * Inline login form rendered when user is not authenticated.
@@ -86,13 +90,51 @@ function InlineLoginForm() {
   );
 }
 
+/**
+ * Onboarding banner shown when user hasn't completed onboarding.
+ * Uses client-side navigation (router.push) to avoid middleware conflicts.
+ */
+function OnboardingBanner({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="bg-gradient-to-r from-primary/10 to-primary/5 border-b border-primary/20"
+    >
+      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Rocket className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-sm text-foreground">
+            <span className="font-medium">Bienvenue !</span>{" "}
+            Personnalisez votre expérience en configurant votre profil.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="gap-1.5 shrink-0"
+          onClick={onNavigate}
+        >
+          <Rocket className="w-3.5 h-3.5" />
+          Configurer
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
+  const { isComplete, _hasHydrated: onboardingHydrated } = useOnboardingStore();
+  const pathname = usePathname();
+  const router = useRouter();
   const [ready, setReady] = useState(false);
+  const redirectRef = useRef(false);
 
   useEffect(() => {
     // Give Zustand a short window to hydrate from localStorage.
@@ -103,13 +145,26 @@ export default function AuthenticatedLayout({
       setReady(true);
     }, 1500);
 
-    if (_hasHydrated) {
+    if (_hasHydrated && onboardingHydrated) {
       clearTimeout(timeout);
-      setReady(true);
+      // Use microtask to avoid synchronous setState in effect
+      queueMicrotask(() => setReady(true));
     }
 
     return () => clearTimeout(timeout);
-  }, [_hasHydrated]);
+  }, [_hasHydrated, onboardingHydrated]);
+
+  // Show onboarding banner if authenticated and onboarding not complete
+  // (but not on the onboarding page itself)
+  const showOnboardingBanner = ready && isAuthenticated && !isComplete && pathname !== "/onboarding";
+
+  // Handle onboarding navigation
+  const handleGoToOnboarding = () => {
+    if (!redirectRef.current) {
+      redirectRef.current = true;
+      router.push("/onboarding");
+    }
+  };
 
   // Show loading spinner while waiting for hydration or timeout
   if (!ready) {
@@ -130,5 +185,15 @@ export default function AuthenticatedLayout({
   }
 
   // Authenticated → show the app
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <>
+      <AnimatePresence>
+        {showOnboardingBanner && (
+          <OnboardingBanner onNavigate={handleGoToOnboarding} />
+        )}
+      </AnimatePresence>
+      <AppLayout>{children}</AppLayout>
+      <KeyboardShortcutsDialog />
+    </>
+  );
 }

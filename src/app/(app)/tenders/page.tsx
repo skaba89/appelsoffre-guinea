@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { mockTenders } from "@/lib/mock-data";
 import type { Tender } from "@/lib/mock-data";
+import { useComparisonStore } from "@/stores/comparison-store";
 import {
   cn,
   formatCurrency,
@@ -36,6 +37,7 @@ import {
   Target,
   TrendingUp,
   Zap,
+  GitCompareArrows,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -56,6 +58,7 @@ import {
 import { GradientBadge } from "@/components/ui/gradient-badge";
 import { ScoreGauge } from "@/components/ui/score-gauge";
 import { Separator } from "@/components/ui/separator";
+import { FavoriteButton } from "@/components/ui/favorite-button";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -136,16 +139,47 @@ function urgencyColor(urgency: string): string {
   }
 }
 
+// ─── Compare Button ──────────────────────────────────────────────────────────
+
+function CompareButton({ tenderId }: { tenderId: string }) {
+  const { addToComparison, removeFromComparison, isInComparison } = useComparisonStore();
+  const inComparison = isInComparison(tenderId);
+
+  return (
+    <Button
+      variant={inComparison ? "default" : "ghost"}
+      size="sm"
+      className={cn(
+        "h-7 gap-1 text-xs px-2",
+        inComparison && "bg-primary/10 text-primary hover:bg-primary/20"
+      )}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (inComparison) {
+          removeFromComparison(tenderId);
+        } else {
+          addToComparison(tenderId);
+        }
+      }}
+      title={inComparison ? "Retirer de la comparaison" : "Comparer"}
+    >
+      <GitCompareArrows className="w-3 h-3" />
+      <span className="hidden sm:inline">{inComparison ? "Ajouté" : "Comparer"}</span>
+    </Button>
+  );
+}
+
 // ─── Tender Card (Grid View) ──────────────────────────────────────────────────
 
 function TenderGridCard({ tender }: { tender: Tender }) {
   const countdown = deadlineCountdown(tender.deadline_date);
 
   return (
-    <Link href={`/tenders/${tender.id}`} className="block h-full">
+    <div className="h-full">
       <AnimatedCard
         variant="elevated"
-        className="h-full relative overflow-hidden py-0 cursor-pointer"
+        className="h-full relative overflow-hidden py-0"
       >
         {/* Score badge — top right */}
         <div className="absolute top-3 right-3 z-10">
@@ -158,7 +192,12 @@ function TenderGridCard({ tender }: { tender: Tender }) {
           />
         </div>
 
-        <AnimatedCardHeader className="pt-4 pb-0 pr-20">
+        {/* Favorite button — top left */}
+        <div className="absolute top-3 left-3 z-10">
+          <FavoriteButton tenderId={tender.id} size="sm" />
+        </div>
+
+        <AnimatedCardHeader className="pt-12 pb-0 pr-20">
           <div className="flex items-start gap-2 mb-1">
             <Badge variant="secondary" className="text-[10px] shrink-0">
               {tender.sector}
@@ -225,31 +264,37 @@ function TenderGridCard({ tender }: { tender: Tender }) {
 
           <Separator className="my-1" />
 
-          {/* Bottom: status + GO/NO-GO */}
+          {/* Bottom: status + GO/NO-GO + Compare */}
           <div className="flex items-center justify-between gap-2">
-            <Badge
-              className={cn("text-[10px]", statusColor(tender.status))}
-              variant="secondary"
-            >
-              {statusLabel(tender.status)}
-            </Badge>
-            <GradientBadge
-              variant={strategyBadgeVariant(tender.strategy_recommendation)}
-              size="sm"
-              animated
-            >
-              {tender.strategy_recommendation === "go" && (
-                <Zap className="w-3 h-3" />
-              )}
-              {tender.strategy_recommendation === "go_conditional" && (
-                <TrendingUp className="w-3 h-3" />
-              )}
-              {strategyLabel(tender.strategy_recommendation)}
-            </GradientBadge>
+            <div className="flex items-center gap-2">
+              <Badge
+                className={cn("text-[10px]", statusColor(tender.status))}
+                variant="secondary"
+              >
+                {statusLabel(tender.status)}
+              </Badge>
+              <GradientBadge
+                variant={strategyBadgeVariant(tender.strategy_recommendation)}
+                size="sm"
+                animated
+              >
+                {tender.strategy_recommendation === "go" && (
+                  <Zap className="w-3 h-3" />
+                )}
+                {tender.strategy_recommendation === "go_conditional" && (
+                  <TrendingUp className="w-3 h-3" />
+                )}
+                {strategyLabel(tender.strategy_recommendation)}
+              </GradientBadge>
+            </div>
+            <CompareButton tenderId={tender.id} />
           </div>
         </AnimatedCardContent>
+
+        {/* Clickable overlay — navigates to detail */}
+        <Link href={`/tenders/${tender.id}`} className="absolute inset-0 z-0" aria-label={`Voir ${tender.title}`} />
       </AnimatedCard>
-    </Link>
+    </div>
   );
 }
 
@@ -261,9 +306,14 @@ function TenderListRow({ tender }: { tender: Tender }) {
   return (
     <Link href={`/tenders/${tender.id}`} className="block">
       <motion.div
-        className="group grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-4 py-3 border-b border-border hover:bg-accent/30 transition-colors"
+        className="group grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-4 px-4 py-3 border-b border-border hover:bg-accent/30 transition-colors"
         variants={motionVariants.staggerItem}
       >
+        {/* Favorite */}
+        <div className="shrink-0" onClick={(e) => e.preventDefault()}>
+          <FavoriteButton tenderId={tender.id} size="sm" />
+        </div>
+
         {/* Title + ref */}
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
@@ -328,6 +378,11 @@ function TenderListRow({ tender }: { tender: Tender }) {
           >
             {strategyLabel(tender.strategy_recommendation)}
           </GradientBadge>
+        </div>
+
+        {/* Compare */}
+        <div className="shrink-0" onClick={(e) => e.preventDefault()}>
+          <CompareButton tenderId={tender.id} />
         </div>
       </motion.div>
     </Link>
@@ -989,7 +1044,8 @@ export default function TendersPage() {
           key={`list-${page}`}
         >
           {/* List header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-4 py-2.5 bg-muted/50 border-b border-border">
+          <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto_auto] items-center gap-4 px-4 py-2.5 bg-muted/50 border-b border-border">
+            <span className="w-7" />
             <span className="text-xs font-medium text-muted-foreground">
               Appel d&apos;offres
             </span>
@@ -1004,6 +1060,9 @@ export default function TendersPage() {
             </span>
             <span className="text-xs font-medium text-muted-foreground">
               Décision
+            </span>
+            <span className="text-xs font-medium text-muted-foreground hidden sm:block">
+              Comparer
             </span>
           </div>
 
