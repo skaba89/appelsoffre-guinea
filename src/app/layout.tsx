@@ -29,7 +29,7 @@ export default function RootLayout({
           <SkipNav />
           {children}
           <Toaster />
-          <PerformanceLogger />
+          
         </Providers>
       </body>
     </html>

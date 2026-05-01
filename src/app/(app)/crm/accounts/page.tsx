@@ -305,13 +305,13 @@ export default function AccountsPage() {
 // ─── Account Card Sub-Component ───────────────────────────────────────────────
 
 function AccountCard({ account }: { account: Account }) {
-  const sectorIcon = Building2;
+  const SectorIcon = Building2;
 
   return (
     <AnimatedCard variant="default" className="p-4 gap-3">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-          <sectorIcon className="w-5 h-5 text-primary" />
+          <SectorIcon className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
