@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { name: "Entreprises", href: "/crm/accounts" },
   { name: "Contacts", href: "/crm/contacts" },
+  { name: "Opportunités", href: "/crm/opportunities" },
 ];
 
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">CRM</h1>
-        <p className="text-muted-foreground">Gérez vos entreprises et contacts</p>
+        <p className="text-muted-foreground">
+          Gérez vos entreprises, contacts et opportunités en Guinée
+        </p>
       </div>
       <div className="border-b">
         <nav className="flex space-x-4" aria-label="CRM Tabs">

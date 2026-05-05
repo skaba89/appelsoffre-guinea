@@ -30,6 +30,7 @@ import {
   Calendar,
   GitCompareArrows,
   History,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -51,7 +52,11 @@ const navigation = [
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Rapports", href: "/reports", icon: FileText },
   { name: "Workflows", href: "/workflows", icon: Workflow },
-  { name: "CRM", href: "/crm/accounts", icon: Users },
+  { name: "CRM", href: "/crm/accounts", icon: Users, children: [
+    { name: "Entreprises", href: "/crm/accounts" },
+    { name: "Contacts", href: "/crm/contacts" },
+    { name: "Opportunités", href: "/crm/opportunities" },
+  ]},
   { name: "Assistant IA", href: "/ai", icon: Bot },
   { name: "Prompts", href: "/prompts", icon: FileCode },
   { name: "Documents", href: "/documents", icon: FolderOpen },
@@ -79,12 +84,73 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { role } = useAuthStore();
   const isAdmin = role === "tenant_admin" || role === "super_admin";
+  const [expandedItems, setExpandedItems] = useState<string[]>(["CRM"]);
+
+  const toggleExpand = (name: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  };
 
   return (
     <ScrollArea className="flex-1 px-3 py-4">
       <nav className="space-y-1">
         {navigation.map((item) => {
+          const hasChildren = item.children && item.children.length > 0;
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isExpanded = expandedItems.includes(item.name);
+
+          // Auto-expand if a child is active
+          const isChildActive = hasChildren && item.children!.some((child) =>
+            pathname === child.href || pathname.startsWith(child.href + "/")
+          );
+
+          if (hasChildren) {
+            return (
+              <div key={item.name}>
+                <button
+                  onClick={() => toggleExpand(item.name)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left",
+                    isChildActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  {item.name}
+                  <ChevronRight className={cn(
+                    "w-3.5 h-3.5 ml-auto transition-transform duration-200",
+                    (isExpanded || isChildActive) && "rotate-90"
+                  )} />
+                </button>
+                {(isExpanded || isChildActive) && (
+                  <div className="ml-7 mt-0.5 space-y-0.5">
+                    {item.children!.map((child) => {
+                      const childActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                      return (
+                        <Link
+                          key={child.name}
+                          href={child.href}
+                          onClick={onNavigate}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                            childActive
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                          )}
+                        >
+                          <div className={cn("w-1.5 h-1.5 rounded-full", childActive ? "bg-primary" : "bg-muted-foreground/40")} />
+                          {child.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.name}

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -15,6 +15,21 @@ from app.core.database import get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+
+async def _extract_optional_token(request: Request) -> Optional[str]:
+    """Extract a Bearer token from the Authorization header, or return None.
+    
+    Unlike OAuth2PasswordBearer, this does NOT register as a FastAPI security scheme
+    and does NOT add any query parameters. It simply reads the Authorization header.
+    """
+    authorization: Optional[str] = request.headers.get("Authorization")
+    if not authorization:
+        return None
+    scheme, _, param = authorization.partition(" ")
+    if scheme.lower() != "bearer":
+        return None
+    return param
 
 
 def hash_password(password: str) -> str:
@@ -80,6 +95,35 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise credentials_exception
+    return user
+
+
+async def optional_current_user(
+    token: Optional[str] = Depends(_extract_optional_token),
+    db: AsyncSession = Depends(get_db),
+) -> Optional["User"]:
+    """FastAPI dependency: extract the current user from the JWT, or return None if no/invalid token.
+
+    This is the demo-mode-friendly version of get_current_user. Instead of raising 401
+    when no token or an invalid token is provided, it silently returns None so that
+    unauthenticated requests can still reach endpoints that opt into optional auth.
+    """
+    if token is None:
+        return None
+    try:
+        payload = decode_token(token)
+        user_id: Optional[str] = payload.get("sub")
+        token_type: Optional[str] = payload.get("type")
+        if user_id is None or token_type != "access":
+            return None
+    except JWTError:
+        return None
+
+    from app.models.user import User
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        return None
     return user
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutGrid,
@@ -24,20 +24,19 @@ import { cn, formatCurrency, formatDate, daysUntil } from "@/lib/tenderflow-util
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PipelineStage = "veille" | "qualification" | "redaction" | "soumission" | "resultat";
+type PipelineStage = "prospecting" | "qualification" | "proposal" | "negotiation" | "won" | "lost";
 
 interface Opportunity {
   id: string;
-  title: string;
-  organization: string;
-  budget: number;
-  deadline: string;
-  score: number;
+  name: string;
+  account_id?: string;
+  account_name?: string;
+  amount: number | null;
   stage: PipelineStage;
-  sector: string;
-  region: string;
-  reference: string;
-  contactName: string;
+  probability: number;
+  close_date: string | null;
+  currency: string;
+  notes?: string;
 }
 
 // ─── Pipeline Column Config ───────────────────────────────────────────────────
@@ -49,30 +48,12 @@ const PIPELINE_COLUMNS: {
   bgAccent: string;
   headerBg: string;
 }[] = [
-  { key: "veille", label: "Veille", color: "text-sky-600 dark:text-sky-400", bgAccent: "bg-sky-500", headerBg: "bg-sky-50 dark:bg-sky-950/40" },
+  { key: "prospecting", label: "Prospection", color: "text-sky-600 dark:text-sky-400", bgAccent: "bg-sky-500", headerBg: "bg-sky-50 dark:bg-sky-950/40" },
   { key: "qualification", label: "Qualification", color: "text-amber-600 dark:text-amber-400", bgAccent: "bg-amber-500", headerBg: "bg-amber-50 dark:bg-amber-950/40" },
-  { key: "redaction", label: "Rédaction", color: "text-violet-600 dark:text-violet-400", bgAccent: "bg-violet-500", headerBg: "bg-violet-50 dark:bg-violet-950/40" },
-  { key: "soumission", label: "Soumission", color: "text-orange-600 dark:text-orange-400", bgAccent: "bg-orange-500", headerBg: "bg-orange-50 dark:bg-orange-950/40" },
-  { key: "resultat", label: "Résultat", color: "text-emerald-600 dark:text-emerald-400", bgAccent: "bg-emerald-500", headerBg: "bg-emerald-50 dark:bg-emerald-950/40" },
-];
-
-// ─── Mock Data: 12+ realistic Guinea tender opportunities ─────────────────────
-
-const opportunities: Opportunity[] = [
-  { id: "o-001", title: "Construction pont Kouroussa", organization: "Ministère des Travaux Publics", budget: 20_000_000_000, deadline: "2026-06-15", score: 85, stage: "redaction", sector: "BTP", region: "Kankan", reference: "AO/MTP/2026/0142", contactName: "Abdoulaye Soumah" },
-  { id: "o-002", title: "Panneaux solaires centres de santé", organization: "Direction Nationale de l'Énergie", budget: 6_500_000_000, deadline: "2026-05-20", score: 72, stage: "qualification", sector: "Énergie", region: "National", reference: "AO/DNE/2026/0087", contactName: "Fatoumata Binta Bah" },
-  { id: "o-003", title: "SIG ressources minières", organization: "SOGUIPAMI", budget: 4_500_000_000, deadline: "2026-05-10", score: 91, stage: "soumission", sector: "IT / Digital", region: "Conakry", reference: "AO/SOGUIPAMI/2026/0023", contactName: "Ibrahima Keita" },
-  { id: "o-004", title: "Réseau eau Conakry Phase 2", organization: "Société des Eaux de Guinée", budget: 27_500_000_000, deadline: "2026-07-01", score: 48, stage: "veille", sector: "Eau / Assainissement", region: "Conakry", reference: "AO/SEG/2026/0198", contactName: "Mariama Condé" },
-  { id: "o-005", title: "Cybersécurité Administration publique", organization: "AGUIPE", budget: 3_250_000_000, deadline: "2026-05-15", score: 78, stage: "redaction", sector: "IT / Digital", region: "Conakry", reference: "AO/AGUIPE/2026/0019", contactName: "Aissatou Diallo" },
-  { id: "o-006", title: "Équipement informatique 200 écoles", organization: "Ministère de l'Éducation", budget: 5_500_000_000, deadline: "2026-05-30", score: 62, stage: "qualification", sector: "Éducation", region: "National", reference: "AO/MEPU/2026/0156", contactName: "Moussa Camara" },
-  { id: "o-007", title: "Restructuration ONGUI", organization: "Office National de Gestion Urbaine", budget: 850_000_000, deadline: "2026-04-25", score: 88, stage: "soumission", sector: "Conseil", region: "Conakry", reference: "AO/ONGUI/2026/0012", contactName: "Kadiatou Touré" },
-  { id: "o-008", title: "Audit comptes établissements publics", organization: "Ministère des Finances", budget: 1_150_000_000, deadline: "2026-04-28", score: 82, stage: "resultat", sector: "Finance", region: "Conakry", reference: "AO/MF/2026/0034", contactName: "Lamine Fofana" },
-  { id: "o-009", title: "Réseau 4G zones rurales", organization: "ARTP", budget: 15_000_000_000, deadline: "2026-05-25", score: 55, stage: "veille", sector: "Télécom", region: "National", reference: "AO/ARTP/2026/0045", contactName: "Oumar Sylla" },
-  { id: "o-010", title: "Matériels laboratoire CHU Conakry", organization: "Ministère de la Santé", budget: 2_250_000_000, deadline: "2026-05-05", score: 68, stage: "qualification", sector: "Santé", region: "Conakry", reference: "AO/MS/2026/0078", contactName: "Hawa Dioubaté" },
-  { id: "o-011", title: "Route Boké-Kamsar 85km", organization: "Ministère des Travaux Publics", budget: 50_000_000_000, deadline: "2026-06-30", score: 32, stage: "veille", sector: "BTP", region: "Boké", reference: "AO/MTP/2026/0201", contactName: "Abdoulaye Soumah" },
-  { id: "o-012", title: "Programme rizicole Guinée Forestière", organization: "Ministère de l'Agriculture", budget: 10_000_000_000, deadline: "2026-06-20", score: 45, stage: "veille", sector: "Agriculture", region: "Nzérékoré", reference: "AO/MA/2026/0067", contactName: "Aminata Sow" },
-  { id: "o-013", title: "GMAO SIGG", organization: "Société Interprofessionnelle du Gaz", budget: 800_000_000, deadline: "2026-03-15", score: 95, stage: "resultat", sector: "Industrie", region: "Conakry", reference: "AO/SIGG/2026/0031", contactName: "Boubacar Barry" },
-  { id: "o-014", title: "Sécurité bâtiments publics Kankan", organization: "Secrétariat Général du Gouvernement", budget: 2_750_000_000, deadline: "2026-05-12", score: 38, stage: "qualification", sector: "Sécurité", region: "Kankan", reference: "AO/SGG/2026/0089", contactName: "Kadiatou Touré" },
+  { key: "proposal", label: "Proposition", color: "text-violet-600 dark:text-violet-400", bgAccent: "bg-violet-500", headerBg: "bg-violet-50 dark:bg-violet-950/40" },
+  { key: "negotiation", label: "Négociation", color: "text-orange-600 dark:text-orange-400", bgAccent: "bg-orange-500", headerBg: "bg-orange-50 dark:bg-orange-950/40" },
+  { key: "won", label: "Gagné", color: "text-emerald-600 dark:text-emerald-400", bgAccent: "bg-emerald-500", headerBg: "bg-emerald-50 dark:bg-emerald-950/40" },
+  { key: "lost", label: "Perdu", color: "text-red-600 dark:text-red-400", bgAccent: "bg-red-500", headerBg: "bg-red-50 dark:bg-red-950/40" },
 ];
 
 // ─── Score badge variant helper ───────────────────────────────────────────────
@@ -88,31 +69,75 @@ function scoreBadgeVariant(score: number): "success" | "warning" | "destructive"
 export default function OpportunitiesPage() {
   const [viewMode, setViewMode] = useState<"kanban" | "liste">("kanban");
   const [search, setSearch] = useState("");
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchOpportunities();
+  }, []);
+
+  async function fetchOpportunities() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/crm/opportunities?page_size=100");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const list = Array.isArray(data) ? data : data.opportunities || [];
+      setOpportunities(list);
+    } catch (err: any) {
+      console.error("Error fetching opportunities:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return opportunities;
     const q = search.toLowerCase();
     return opportunities.filter(
       (o) =>
-        o.title.toLowerCase().includes(q) ||
-        o.organization.toLowerCase().includes(q) ||
-        o.sector.toLowerCase().includes(q) ||
-        o.reference.toLowerCase().includes(q)
+        o.name.toLowerCase().includes(q) ||
+        (o.account_name || "").toLowerCase().includes(q) ||
+        o.stage.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, opportunities]);
 
   // Stats calculations
-  const totalPipeline = filtered.reduce((s, o) => s + o.budget, 0);
-  const wonCount = filtered.filter((o) => o.stage === "resultat").length;
+  const totalPipeline = filtered.reduce((s, o) => s + (o.amount || 0), 0);
+  const wonCount = filtered.filter((o) => o.stage === "won").length;
   const tauxReussite = filtered.length > 0 ? Math.round((wonCount / filtered.length) * 100) : 0;
   const cycleMoyen = 42; // jours (mock)
-  const activeOpps = filtered.filter((o) => o.stage !== "resultat").length;
+  const activeOpps = filtered.filter((o) => o.stage !== "won" && o.stage !== "lost").length;
 
   const columnData = PIPELINE_COLUMNS.map((col) => {
     const opps = filtered.filter((o) => o.stage === col.key);
-    const totalValue = opps.reduce((s, o) => s + o.budget, 0);
+    const totalValue = opps.reduce((s, o) => s + (o.amount || 0), 0);
     return { ...col, opps, totalValue };
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-3 text-muted-foreground">Chargement des opportunités...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+        <p className="text-destructive font-medium">Erreur : {error}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Vérifiez que le backend FastAPI est bien démarré sur le port 8000.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -128,8 +153,7 @@ export default function OpportunitiesPage() {
             Pipeline des opportunités
           </h1>
           <p className="text-muted-foreground mt-1">
-            {filtered.length} opportunités en cours ·{" "}
-            {formatCurrency(totalPipeline)}
+            {filtered.length} opportunités · {formatCurrency(totalPipeline)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -287,13 +311,12 @@ export default function OpportunitiesPage() {
             transition={transitions.normal}
           >
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_140px_120px_90px_80px_80px] gap-2 px-4 py-2.5 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-[1fr_140px_120px_90px_80px] gap-2 px-4 py-2.5 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
               <span>Opportunité</span>
               <span className="hidden sm:block">Organisation</span>
-              <span className="hidden md:block">Budget</span>
+              <span className="hidden md:block">Montant</span>
               <span className="hidden lg:block">Échéance</span>
-              <span className="text-center">Score</span>
-              <span className="text-center">Étape</span>
+              <span className="text-center">Probabilité</span>
             </div>
             {/* Table rows */}
             <motion.div
@@ -302,57 +325,38 @@ export default function OpportunitiesPage() {
               animate="visible"
             >
               {filtered.map((opp) => {
-                const days = daysUntil(opp.deadline);
                 const col = PIPELINE_COLUMNS.find((c) => c.key === opp.stage);
+                const prob = Math.round(opp.probability * 100);
                 return (
                   <motion.div
                     key={opp.id}
                     variants={motionVariants.staggerItem}
-                    className="grid grid-cols-[1fr_140px_120px_90px_80px_80px] gap-2 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
+                    className="grid grid-cols-[1fr_140px_120px_90px_80px] gap-2 px-4 py-3 border-b last:border-b-0 hover:bg-accent/30 transition-colors items-center"
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {opp.title}
+                        {opp.name}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
-                        {opp.reference} · {opp.region}
+                        {opp.currency}
                       </p>
                     </div>
                     <span className="text-sm text-muted-foreground truncate hidden sm:block">
-                      {opp.organization}
+                      {opp.account_name || "—"}
                     </span>
                     <span className="text-sm font-medium text-foreground hidden md:block">
-                      {formatCurrency(opp.budget)}
+                      {opp.amount ? formatCurrency(opp.amount) : "—"}
                     </span>
                     <span className="text-sm text-muted-foreground hidden lg:block">
-                      {formatDate(opp.deadline)}
-                      {days !== null && days <= 15 && days > 0 && (
-                        <span className="ml-1 text-destructive text-[11px]">
-                          ({days}j)
-                        </span>
-                      )}
+                      {opp.close_date ? formatDate(opp.close_date) : "—"}
                     </span>
                     <div className="flex justify-center">
                       <GradientBadge
-                        variant={scoreBadgeVariant(opp.score)}
+                        variant={scoreBadgeVariant(prob)}
                         size="sm"
                       >
-                        {opp.score}
+                        {prob}%
                       </GradientBadge>
-                    </div>
-                    <div className="flex justify-center">
-                      {col && (
-                        <Badge
-                          className={cn(
-                            "text-[10px] gap-1 border-0",
-                            col.headerBg,
-                            col.color
-                          )}
-                          variant="outline"
-                        >
-                          {col.label}
-                        </Badge>
-                      )}
                     </div>
                   </motion.div>
                 );
@@ -368,8 +372,8 @@ export default function OpportunitiesPage() {
 // ─── Opportunity Card Sub-Component ──────────────────────────────────────────
 
 function OppCard({ opp }: { opp: Opportunity }) {
-  const days = daysUntil(opp.deadline);
   const col = PIPELINE_COLUMNS.find((c) => c.key === opp.stage);
+  const prob = Math.round(opp.probability * 100);
 
   return (
     <motion.div
@@ -382,41 +386,37 @@ function OppCard({ opp }: { opp: Opportunity }) {
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-sm font-medium text-foreground leading-snug">
-          {opp.title}
+          {opp.name}
         </p>
         <GradientBadge
-          variant={scoreBadgeVariant(opp.score)}
+          variant={scoreBadgeVariant(prob)}
           size="sm"
         >
-          {opp.score}
+          {prob}%
         </GradientBadge>
       </div>
 
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-        <Building2 className="w-3 h-3 shrink-0" />
-        <span className="truncate">{opp.organization}</span>
-      </div>
+      {opp.account_name && (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+          <Building2 className="w-3 h-3 shrink-0" />
+          <span className="truncate">{opp.account_name}</span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-foreground">
-          {formatCurrency(opp.budget)}
+          {opp.amount ? formatCurrency(opp.amount) : "—"}
         </span>
         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <CalendarDays className="w-3 h-3" />
-          {days !== null && days > 0 ? (
-            <span className={days <= 15 ? "text-destructive font-medium" : ""}>
-              {days}j
-            </span>
-          ) : (
-            <span>{formatDate(opp.deadline)}</span>
-          )}
+          {opp.close_date ? formatDate(opp.close_date) : "—"}
         </div>
       </div>
 
-      {/* Footer: sector + stage indicator */}
+      {/* Footer: stage indicator */}
       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-          {opp.sector}
+          {opp.currency}
         </Badge>
         <ChevronRight className="w-3 h-3 text-muted-foreground/40 ml-auto" />
       </div>

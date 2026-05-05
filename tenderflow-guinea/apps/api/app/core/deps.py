@@ -7,36 +7,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, optional_current_user
 from app.models.user import User
 from app.models.membership import Membership
 from app.models.tenant import Tenant
 
 
 async def get_current_tenant(
-    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Tenant:
     """Resolve the active tenant for the current user.
-    First tries X-Tenant-ID header, then falls back to user's active membership."""
-    # Try header-based tenant resolution first
-    header_tenant_id = request.headers.get("X-Tenant-ID")
-    if header_tenant_id:
-        result = await db.execute(select(Tenant).where(Tenant.id == header_tenant_id))
-        tenant = result.scalar_one_or_none()
-        if tenant and tenant.is_active:
-            # Verify user has membership in this tenant
-            membership_result = await db.execute(
-                select(Membership).where(
-                    Membership.user_id == user.id,
-                    Membership.tenant_id == tenant.id,
-                    Membership.is_active == True,
-                )
-            )
-            if membership_result.scalar_one_or_none():
-                return tenant
-
+    Uses user's first active membership to determine the tenant."""
     # Fallback: use the first active membership
     result = await db.execute(
         select(Membership)
@@ -50,6 +32,52 @@ async def get_current_tenant(
     tenant = result.scalar_one_or_none()
     if tenant is None or not tenant.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Workspace introuvable")
+    return tenant
+
+
+async def optional_get_current_tenant(
+    db: AsyncSession = Depends(get_db),
+    user: Optional[User] = Depends(optional_current_user),
+) -> Tenant:
+    """Resolve the active tenant with demo-mode fallback.
+
+    When a valid authenticated user is present, resolves tenant from membership.
+    When user is None (demo mode), auto-detects the default tenant.
+    """
+    if user is not None:
+        # Authenticated path — resolve from user's membership
+        result = await db.execute(
+            select(Membership)
+            .where(Membership.user_id == user.id, Membership.is_active == True)
+            .limit(1)
+        )
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Aucun workspace actif")
+        result = await db.execute(select(Tenant).where(Tenant.id == membership.tenant_id))
+        tenant = result.scalar_one_or_none()
+        if tenant is None or not tenant.is_active:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Workspace introuvable")
+        return tenant
+
+    # ── Demo / unauthenticated path ──
+
+    # 1. Try the well-known demo slug
+    result = await db.execute(select(Tenant).where(Tenant.slug == "guinea-demo"))
+    tenant = result.scalar_one_or_none()
+    if tenant and tenant.is_active:
+        return tenant
+
+    # 2. Fall back to the first active tenant in the database
+    result = await db.execute(
+        select(Tenant).where(Tenant.is_active == True).limit(1)
+    )
+    tenant = result.scalar_one_or_none()
+    if tenant is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Aucun workspace disponible en mode démo",
+        )
     return tenant
 
 

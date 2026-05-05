@@ -4,14 +4,15 @@ COMPLIANCE: All contact data is strictly professional and public.
 Every contact must have source traceability (source_url, source_label).
 """
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_user, require_role
-from app.core.deps import get_current_tenant, PaginationParams
+from app.core.security import get_current_user, optional_current_user, require_role
+from app.core.deps import get_current_tenant, optional_get_current_tenant, PaginationParams
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.crm import (
@@ -37,8 +38,8 @@ async def list_accounts(
     pagination: PaginationParams = Depends(),
     type_filter: str | None = Query(None, alias="type"),
     search: str | None = Query(None),
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List CRM accounts with filtering."""
@@ -83,8 +84,8 @@ async def create_account(
 @router.get("/accounts/{account_id}", response_model=CRMAccountResponse)
 async def get_account(
     account_id: str,
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a CRM account by ID."""
@@ -136,6 +137,69 @@ async def delete_account(
     await db.flush()
 
 
+# ─── Companies (alias routes for frontend compatibility) ──────────────────
+# The Next.js frontend calls /api/v1/crm/companies but the backend model is
+# "accounts".  These alias routes delegate to the same handler logic so the
+# frontend works without changes.
+
+@router.get("/companies", response_model=PaginatedResponse[CRMAccountResponse])
+async def list_companies(
+    pagination: PaginationParams = Depends(),
+    type_filter: str | None = Query(None, alias="type"),
+    search: str | None = Query(None),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """List CRM companies (alias for /accounts)."""
+    return await list_accounts(pagination, type_filter, search, user, tenant, db)
+
+
+@router.get("/companies/{company_id}", response_model=CRMAccountResponse)
+async def get_company(
+    company_id: str,
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a CRM company by ID (alias for /accounts/{id})."""
+    return await get_account(company_id, user, tenant, db)
+
+
+@router.post("/companies", response_model=CRMAccountResponse, status_code=status.HTTP_201_CREATED)
+async def create_company(
+    body: CRMAccountCreate,
+    user: User = Depends(require_role("tenant_admin", "sales", "bid_manager")),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a CRM company (alias for POST /accounts)."""
+    return await create_account(body, user, tenant, db)
+
+
+@router.put("/companies/{company_id}", response_model=CRMAccountResponse)
+async def update_company(
+    company_id: str,
+    body: CRMAccountUpdate,
+    user: User = Depends(require_role("tenant_admin", "sales", "bid_manager")),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a CRM company (alias for PUT /accounts/{id})."""
+    return await update_account(company_id, body, user, tenant, db)
+
+
+@router.delete("/companies/{company_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_company(
+    company_id: str,
+    user: User = Depends(require_role("tenant_admin")),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a CRM company (alias for DELETE /accounts/{id})."""
+    return await delete_account(company_id, user, tenant, db)
+
+
 # ─── Contacts (PROFESSIONAL ONLY) ────────────────────────────────────────
 
 @router.get("/contacts", response_model=PaginatedResponse[CRMContactResponse])
@@ -144,8 +208,8 @@ async def list_contacts(
     account_id: str | None = Query(None),
     search: str | None = Query(None),
     validation_status: str | None = Query(None),
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List professional contacts (professional data only)."""
@@ -198,8 +262,8 @@ async def create_contact(
 @router.get("/contacts/{contact_id}", response_model=CRMContactResponse)
 async def get_contact(
     contact_id: str,
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a professional contact by ID."""
@@ -278,8 +342,8 @@ async def list_opportunities(
     pagination: PaginationParams = Depends(),
     stage: str | None = Query(None),
     account_id: str | None = Query(None),
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List CRM opportunities."""
@@ -323,8 +387,8 @@ async def create_opportunity(
 @router.get("/opportunities/{opportunity_id}", response_model=CRMOpportunityResponse)
 async def get_opportunity(
     opportunity_id: str,
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a CRM opportunity by ID."""
@@ -405,8 +469,8 @@ async def list_interactions(
     contact_id: str | None = Query(None),
     account_id: str | None = Query(None),
     limit: int = Query(50, le=200),
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List interactions, optionally filtered."""
@@ -443,8 +507,8 @@ async def list_tasks(
     opportunity_id: str | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
     limit: int = Query(50, le=200),
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List CRM tasks."""
@@ -501,8 +565,8 @@ async def list_notes(
     contact_id: str | None = Query(None),
     opportunity_id: str | None = Query(None),
     limit: int = Query(50, le=200),
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """List CRM notes."""
@@ -522,8 +586,8 @@ async def list_notes(
 
 @router.get("/pipeline/stats", response_model=APIResponse[dict])
 async def get_pipeline_stats(
-    user: User = Depends(get_current_user),
-    tenant: Tenant = Depends(get_current_tenant),
+    user: Optional[User] = Depends(optional_current_user),
+    tenant: Tenant = Depends(optional_get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
     """Get CRM pipeline statistics."""
