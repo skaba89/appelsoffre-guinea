@@ -33,9 +33,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
         if path in self.PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/redoc"):
             return await call_next(request)
 
-        # Store tenant_id in request state if available from auth
-        # The actual tenant resolution happens in the dependency (get_current_tenant)
-        request.state.tenant_id = None
+        # Try to extract tenant_id from X-Tenant-ID header as a hint
+        tenant_id = request.headers.get("X-Tenant-ID")
+        request.state.tenant_id = tenant_id
 
         response = await call_next(request)
         return response

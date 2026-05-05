@@ -8,10 +8,7 @@ from app.core.config import settings
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    pool_size=20,
-    max_overflow=10,
-    pool_pre_ping=True,
-    pool_recycle=3600,
+    connect_args={"check_same_thread": False},
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -41,6 +38,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Initialize the database — create tables if they don't exist."""
+    # Import all models to register them with Base.metadata
+    import app.models  # noqa: F401
     async with engine.begin() as conn:
-        from app.models import *  # noqa: F401, F403 — ensure all models are registered
         await conn.run_sync(Base.metadata.create_all)

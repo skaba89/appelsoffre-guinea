@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, Text
-from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -13,7 +13,7 @@ class User(Base):
     """Represents a user account in the system."""
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(1024), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -25,7 +25,7 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    memberships = relationship("Membership", back_populates="user", lazy="selectin")
+    memberships = relationship("Membership", back_populates="user", lazy="selectin", foreign_keys="Membership.user_id")
     audit_logs = relationship("AuditLog", back_populates="user", lazy="noload")
 
     def __repr__(self) -> str:

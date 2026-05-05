@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://tenderflow:tfsecret@localhost:5432/tenderflow"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./tenderflow_guinea.db"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

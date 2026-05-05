@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -13,9 +13,9 @@ class Alert(Base):
     """Notification/alert for a user."""
     __tablename__ = "alerts"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
     alert_type: Mapped[str] = mapped_column(String(50), nullable=False)
     # Types: new_tender / deadline_approaching / high_match / missing_document / custom
@@ -28,7 +28,7 @@ class Alert(Base):
     is_email_sent: Mapped[bool] = mapped_column(Boolean, default=False)
     priority: Mapped[str] = mapped_column(String(50), default="medium")  # low / medium / high / critical
 
-    related_tender_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("tenders.id", ondelete="SET NULL"), nullable=True)
+    related_tender_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("tenders.id", ondelete="SET NULL"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -41,9 +41,9 @@ class AlertConfig(Base):
     """User-configured alert subscription."""
     __tablename__ = "alert_configs"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     config_type: Mapped[str] = mapped_column(String(50), nullable=False)

@@ -222,7 +222,7 @@ def generate_docx_from_template(template_data: dict, output_path: str) -> bytes:
         return buffer.getvalue()
 
     except ImportError:
-        return b"[Génération DOCX non disponible — installez python-docx]"
+        return "[Generation DOCX non disponible - installez python-docx]".encode("utf-8")
 
 
 def generate_pdf_from_template(template_data: dict) -> bytes:
@@ -265,4 +265,4 @@ def generate_pdf_from_template(template_data: dict) -> bytes:
         return buffer.getvalue()
 
     except ImportError:
-        return b"[Génération PDF non disponible — installez reportlab]"
+        return "[Generation PDF non disponible - installez reportlab]".encode("utf-8")

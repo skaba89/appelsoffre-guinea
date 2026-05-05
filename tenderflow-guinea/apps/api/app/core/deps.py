@@ -2,7 +2,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,12 +14,30 @@ from app.models.tenant import Tenant
 
 
 async def get_current_tenant(
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Tenant:
     """Resolve the active tenant for the current user.
-    In a multi-tenant context, this typically comes from a header or the user's default membership."""
-    # For now, use the first active membership
+    First tries X-Tenant-ID header, then falls back to user's active membership."""
+    # Try header-based tenant resolution first
+    header_tenant_id = request.headers.get("X-Tenant-ID")
+    if header_tenant_id:
+        result = await db.execute(select(Tenant).where(Tenant.id == header_tenant_id))
+        tenant = result.scalar_one_or_none()
+        if tenant and tenant.is_active:
+            # Verify user has membership in this tenant
+            membership_result = await db.execute(
+                select(Membership).where(
+                    Membership.user_id == user.id,
+                    Membership.tenant_id == tenant.id,
+                    Membership.is_active == True,
+                )
+            )
+            if membership_result.scalar_one_or_none():
+                return tenant
+
+    # Fallback: use the first active membership
     result = await db.execute(
         select(Membership)
         .where(Membership.user_id == user.id, Membership.is_active == True)

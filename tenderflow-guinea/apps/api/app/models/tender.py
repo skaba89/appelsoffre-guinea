@@ -4,7 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Integer, Float, Numeric, JSON, Index
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -17,12 +17,11 @@ class Tender(Base):
         Index("ix_tenders_tenant_status", "tenant_id", "status"),
         Index("ix_tenders_deadline", "deadline_date"),
         Index("ix_tenders_sector", "sector"),
-        Index("ix_tenders_reference", "reference", unique=False),
     )
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    source_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("sources.id", ondelete="SET NULL"), nullable=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("sources.id", ondelete="SET NULL"), nullable=True)
 
     reference: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -33,7 +32,7 @@ class Tender(Base):
 
     sector: Mapped[str | None] = mapped_column(String(100), nullable=True)
     subsector: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    category_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    category_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
 
     publication_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deadline_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -69,9 +68,9 @@ class Tender(Base):
     # Relationships
     tenant = relationship("Tenant", back_populates="tenders")
     source = relationship("Source", back_populates="tenders")
-    category = relationship("Category", back_populates="tenders", lazy="selectin")
-    documents = relationship("TenderDocument", back_populates="tender", lazy="selectin", cascade="all, delete-orphan")
-    scores = relationship("TenderScore", back_populates="tender", lazy="selectin", cascade="all, delete-orphan")
+    category = relationship("Category", back_populates="tenders", lazy="noload")
+    documents = relationship("TenderDocument", back_populates="tender", lazy="noload", cascade="all, delete-orphan")
+    scores = relationship("TenderScore", back_populates="tender", lazy="noload", cascade="all, delete-orphan")
     tag_links = relationship("TenderTagLink", back_populates="tender", cascade="all, delete-orphan")
     generated_prompts = relationship("GeneratedPrompt", back_populates="tender", lazy="noload")
     generated_documents = relationship("GeneratedDocument", back_populates="tender", lazy="noload")
@@ -88,8 +87,8 @@ class TenderDocument(Base):
     """Document attached to a tender (DAO, annexes, specs, etc.)."""
     __tablename__ = "tender_documents"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tender_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tender_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=False, index=True)
     filename: Mapped[str] = mapped_column(String(500), nullable=False)
     original_filename: Mapped[str] = mapped_column(String(500), nullable=False)
     file_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -112,11 +111,11 @@ class TenderChunk(Base):
     """Text chunk from a tender document for RAG pipeline."""
     __tablename__ = "tender_chunks"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tender_document_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tender_documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tender_document_id: Mapped[str] = mapped_column(String(36), ForeignKey("tender_documents.id", ondelete="CASCADE"), nullable=False, index=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list | None] = mapped_column(ARRAY(Float, dimensions=1), nullable=True)
+    embedding: Mapped[list | None] = mapped_column(JSON, nullable=True)
     chunk_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
@@ -132,8 +131,8 @@ class TenderScore(Base):
     """Calculated score for a tender across different dimensions."""
     __tablename__ = "tender_scores"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tender_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tender_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=False, index=True)
     score_type: Mapped[str] = mapped_column(String(50), nullable=False)  # relevance / urgency / complexity / size / win_prob / doc_risk
     score_value: Mapped[float] = mapped_column(Float, nullable=False)
     weight: Mapped[float] = mapped_column(Float, default=1.0)

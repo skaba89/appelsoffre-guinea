@@ -4,7 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, JSON
-from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -14,8 +14,8 @@ class CompanyProfile(Base):
     """Profile of the tenant's company used for matching and document generation."""
     __tablename__ = "company_profiles"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
 
     company_name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -57,8 +57,8 @@ class Reference(Base):
     """A past project reference for the company."""
     __tablename__ = "references"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    company_profile_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("company_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    company_profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("company_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
 
     project_name: Mapped[str] = mapped_column(String(500), nullable=False)
     client_name: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Integer, JSON
-from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -13,9 +13,9 @@ class GeneratedPrompt(Base):
     """AI-generated prompt for a specific tender/opportunity use case."""
     __tablename__ = "generated_prompts"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    tender_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    tender_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=True, index=True)
 
     prompt_type: Mapped[str] = mapped_column(String(100), nullable=False)
     # Types: dao_analysis / technical_memo / financial_offer / company_presentation /

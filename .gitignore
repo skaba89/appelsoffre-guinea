@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+# Python venv
+venv/
+__pycache__/
+*.pyc
+
+# SQLite database
+*.db
+
+# API .env (contains secrets)
+tenderflow-guinea/apps/api/.env

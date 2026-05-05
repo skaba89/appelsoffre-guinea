@@ -1,7 +1,8 @@
 /** TenderFlow Guinea — API Client */
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use relative URL so Next.js rewrites proxy /api/v1/* to the FastAPI backend
+const API_BASE_URL = "";
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
@@ -10,13 +11,21 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: add auth token
+// Request interceptor: add auth token + tenant context
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Auto-detect tenant_id from auth store and pass as header
+    try {
+      const authData = JSON.parse(localStorage.getItem("tenderflow-auth") || "{}");
+      const tenantId = authData?.state?.tenantId;
+      if (tenantId) {
+        config.headers["X-Tenant-ID"] = tenantId;
+      }
+    } catch {}
   }
   return config;
 });
@@ -29,7 +38,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem("refresh_token");
       if (refreshToken) {
         try {
-          const { data } = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
+          const { data } = await axios.post(`/api/v1/auth/refresh`, {
             refresh_token: refreshToken,
           });
           localStorage.setItem("access_token", data.access_token);

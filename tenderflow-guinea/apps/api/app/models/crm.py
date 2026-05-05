@@ -10,7 +10,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Float, Numeric, JSON
-from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -20,8 +20,8 @@ class CRMAccount(Base):
     """Organization account in the CRM (buyers, companies, partners, competitors)."""
     __tablename__ = "crm_accounts"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
 
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     type: Mapped[str] = mapped_column(String(50), nullable=False, default="company")
@@ -47,8 +47,8 @@ class CRMAccount(Base):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="crm_accounts")
-    contacts = relationship("CRMContact", back_populates="account", lazy="selectin", cascade="all, delete-orphan")
-    opportunities = relationship("CRMOpportunity", back_populates="account", lazy="selectin")
+    contacts = relationship("CRMContact", back_populates="account", lazy="noload", cascade="all, delete-orphan")
+    opportunities = relationship("CRMOpportunity", back_populates="account", lazy="noload")
     interactions = relationship("CRMInteraction", back_populates="account", lazy="noload")
     notes = relationship("CRMNote", back_populates="account", lazy="noload")
 
@@ -67,9 +67,9 @@ class CRMContact(Base):
     """
     __tablename__ = "crm_contacts"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    account_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_accounts.id", ondelete="SET NULL"), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_accounts.id", ondelete="SET NULL"), nullable=True, index=True)
 
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -96,7 +96,7 @@ class CRMContact(Base):
 
     # Relationships
     account = relationship("CRMAccount", back_populates="contacts")
-    opportunities = relationship("CRMOpportunity", back_populates="contact", lazy="selectin")
+    opportunities = relationship("CRMOpportunity", back_populates="contact", lazy="noload")
     interactions = relationship("CRMInteraction", back_populates="contact", lazy="noload")
     notes = relationship("CRMNote", back_populates="contact", lazy="noload")
 
@@ -108,11 +108,11 @@ class CRMOpportunity(Base):
     """Sales/engagement opportunity linked to CRM accounts and tenders."""
     __tablename__ = "crm_opportunities"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    account_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_accounts.id", ondelete="SET NULL"), nullable=True, index=True)
-    tender_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("tenders.id", ondelete="SET NULL"), nullable=True, index=True)
-    contact_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_accounts.id", ondelete="SET NULL"), nullable=True, index=True)
+    tender_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("tenders.id", ondelete="SET NULL"), nullable=True, index=True)
+    contact_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True)
 
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     stage: Mapped[str] = mapped_column(String(50), default="prospecting")
@@ -121,7 +121,7 @@ class CRMOpportunity(Base):
     amount: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(10), default="GNF")
     probability: Mapped[float] = mapped_column(Float, default=0.0)
-    assigned_to: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     close_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -133,9 +133,9 @@ class CRMOpportunity(Base):
     # Relationships
     account = relationship("CRMAccount", back_populates="opportunities")
     contact = relationship("CRMContact", back_populates="opportunities")
-    interactions = relationship("CRMInteraction", back_populates="opportunity", lazy="selectin")
-    tasks = relationship("CRMTask", back_populates="opportunity", lazy="selectin")
-    assignee = relationship("User", lazy="selectin")
+    interactions = relationship("CRMInteraction", back_populates="opportunity", lazy="noload")
+    tasks = relationship("CRMTask", back_populates="opportunity", lazy="noload")
+    assignee = relationship("User", lazy="noload")
 
     def __repr__(self) -> str:
         return f"<CRMOpportunity {self.name} ({self.stage})>"
@@ -145,11 +145,11 @@ class CRMInteraction(Base):
     """Record of interaction with a CRM contact or account."""
     __tablename__ = "crm_interactions"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    opportunity_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_opportunities.id", ondelete="SET NULL"), nullable=True, index=True)
-    contact_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True)
-    account_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_accounts.id", ondelete="SET NULL"), nullable=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    opportunity_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_opportunities.id", ondelete="SET NULL"), nullable=True, index=True)
+    contact_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True)
+    account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_accounts.id", ondelete="SET NULL"), nullable=True)
 
     interaction_type: Mapped[str] = mapped_column(String(50), nullable=False)
     # Types: email / phone / meeting / note / document
@@ -157,7 +157,7 @@ class CRMInteraction(Base):
     subject: Mapped[str | None] = mapped_column(String(500), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    created_by: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
@@ -174,10 +174,10 @@ class CRMTask(Base):
     """Task linked to a CRM opportunity."""
     __tablename__ = "crm_tasks"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    opportunity_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_opportunities.id", ondelete="SET NULL"), nullable=True, index=True)
-    assigned_to: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    opportunity_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_opportunities.id", ondelete="SET NULL"), nullable=True, index=True)
+    assigned_to: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -191,7 +191,7 @@ class CRMTask(Base):
 
     # Relationships
     opportunity = relationship("CRMOpportunity", back_populates="tasks")
-    assignee = relationship("User", lazy="selectin")
+    assignee = relationship("User", lazy="noload")
 
     def __repr__(self) -> str:
         return f"<CRMTask {self.title} ({self.status})>"
@@ -201,14 +201,14 @@ class CRMNote(Base):
     """Note attached to CRM entities."""
     __tablename__ = "crm_notes"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    account_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_accounts.id", ondelete="CASCADE"), nullable=True, index=True)
-    contact_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=True, index=True)
-    opportunity_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("crm_opportunities.id", ondelete="CASCADE"), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_accounts.id", ondelete="CASCADE"), nullable=True, index=True)
+    contact_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=True, index=True)
+    opportunity_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("crm_opportunities.id", ondelete="CASCADE"), nullable=True, index=True)
 
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_by: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
@@ -217,7 +217,7 @@ class CRMNote(Base):
     # Relationships
     account = relationship("CRMAccount", back_populates="notes")
     contact = relationship("CRMContact", back_populates="notes")
-    opportunity = relationship("CRMOpportunity", lazy="selectin")
+    opportunity = relationship("CRMOpportunity", lazy="noload")
 
     def __repr__(self) -> str:
         return f"<CRMNote {self.id[:8]}>"

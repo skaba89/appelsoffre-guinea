@@ -4,7 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, JSON
-from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -58,8 +58,8 @@ class Subscription(Base):
     """Subscription plan for a tenant."""
     __tablename__ = "subscriptions"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
 
     plan: Mapped[str] = mapped_column(String(50), default="free")  # free / pro / business / enterprise
     status: Mapped[str] = mapped_column(String(50), default="active")  # active / past_due / cancelled / trialing
@@ -95,9 +95,9 @@ class BillingEvent(Base):
     """Record of a billing event (payment, plan change, etc.)."""
     __tablename__ = "billing_events"
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
-    tenant_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    subscription_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("subscriptions.id", ondelete="SET NULL"), nullable=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    tenant_id: Mapped[str] = mapped_column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    subscription_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("subscriptions.id", ondelete="SET NULL"), nullable=True)
 
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
     # Types: subscription_created / subscription_updated / payment_succeeded /
