@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const { tenders } = body
 
     if (!tenders || !Array.isArray(tenders)) {
-      return NextResponse.json({ error: 'tenders array is required' }, { status: 400 })
+      return NextResponse.json({ error: 'Le tableau tenders est requis' }, { status: 400 })
     }
 
     let created = 0
@@ -16,47 +16,48 @@ export async function POST(request: NextRequest) {
 
     for (const tender of tenders) {
       try {
-        const { title, source, sourceUrl, deadline, description, organization, category, status } = tender
+        const { title, sourceUrl, deadline, description, sector, region, reference, budgetMin, budgetMax, publishingAuthority } = tender
 
         if (!title || !sourceUrl) {
           skipped++
           continue
         }
 
-        const existing = await prisma.tender.findFirst({ where: { sourceUrl } })
+        const existing = await db.tender.findFirst({ where: { sourceUrl } })
 
         if (existing) {
-          await prisma.tender.update({
+          await db.tender.update({
             where: { id: existing.id },
             data: {
               title,
               description: description || existing.description,
-              organization: organization || existing.organization,
-              category: category || existing.category,
-              status: status || existing.status,
-              deadline: deadline ? new Date(deadline) : existing.deadline,
-              source: source || existing.source,
+              sector: sector || existing.sector,
+              region: region || existing.region,
+              status: tender.status || existing.status,
+              deadlineDate: deadline ? new Date(deadline) : existing.deadlineDate,
               updatedAt: new Date(),
             }
           })
           updated++
         } else {
-          await prisma.tender.create({
+          await db.tender.create({
             data: {
               title,
               description: description || '',
-              organization: organization || '',
-              category: category || 'Autre',
-              status: status || 'active',
-              source: source || 'Unknown',
+              sector: sector || 'Autre',
+              region: region || 'Conakry',
+              reference: reference || `AO/${Date.now()}`,
+              publishingAuthority: publishingAuthority || 'Inconnu',
               sourceUrl,
-              deadline: deadline ? new Date(deadline) : null,
+              deadlineDate: deadline ? new Date(deadline) : new Date(Date.now() + 30 * 24 * 3600 * 1000),
+              budgetMin: budgetMin || 0,
+              budgetMax: budgetMax || 0,
             }
           })
           created++
         }
       } catch (itemError) {
-        console.error('[Update Tenders] Error processing tender:', itemError)
+        console.error('[Update Tenders] Erreur traitement tender:', itemError)
         skipped++
       }
     }
@@ -66,9 +67,9 @@ export async function POST(request: NextRequest) {
       result: { total: tenders.length, created, updated, skipped }
     })
   } catch (error) {
-    console.error('[Update Tenders] Error:', error)
+    console.error('[Update Tenders] Erreur:', error)
     return NextResponse.json(
-      { error: 'Failed to update tenders', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Échec de la mise à jour des appels d\'offres', details: error instanceof Error ? error.message : 'Erreur inconnue' },
       { status: 500 }
     )
   }

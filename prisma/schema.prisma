@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ─── TenderFlow Guinea — Prisma Schema ────────────────────────────────────────
+// Base de données SQLite avec tous les modèles métier
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +10,292 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Utilisateurs & Authentification ──────────────────────────────────────────
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  avatar        String?
+  phone         String?
+  organization  String?
+  role          String    @default("analyst") // super_admin, tenant_admin, manager, analyst, viewer
+  timezone      String    @default("Africa/Conakry")
+  language      String    @default("fr")
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  favorites     Favorite[]
+  documents     Document[]
+
+  @@map("users")
 }
 
-model Post {
+// ─── Appels d'offres ──────────────────────────────────────────────────────────
+
+model Tender {
+  id                    String   @id @default(cuid())
+  reference             String   @unique
+  title                 String
+  description           String
+  sector                String   // BTP, IT/Digital, Énergie, Mines, Santé, etc.
+  region                String   // Conakry, Kindia, Boké, Labé, etc.
+  status                String   @default("new") // new, qualifying, qualified, go, responding, submitted, won, lost, expired
+  tenderType            String   @default("national") // national, international
+  deadlineDate          DateTime
+  budgetMin             Float    @default(0)
+  budgetMax             Float    @default(0)
+  publishingAuthority   String
+  sourceUrl             String?
+  priorityScore         Float    @default(0)   // 0-1
+  compatibilityScore    Float    @default(0)   // 0-1
+  feasibilityScore      Float    @default(0)   // 0-1
+  winProbabilityScore   Float    @default(0)   // 0-1
+  strategyRecommendation String  @default("none") // go, go_conditional, no_go, none
+  requirements          String?  // JSON string des exigences
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  opportunities Opportunity[]
+  notifications Notification[]
+  favorites     Favorite[]
+  documents     Document[]
+  auditLogs     AuditLog[]
+
+  @@index([sector])
+  @@index([region])
+  @@index([status])
+  @@index([deadlineDate])
+  @@map("tenders")
+}
+
+// ─── CRM — Comptes / Organisations ────────────────────────────────────────────
+
+model Account {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   @default("prospect") // prospect, customer, partner, supplier
+  industry       String?  // Secteur d'activité
+  sector         String?
+  website        String?
+  description    String?
+  address        String?
+  city           String?
+  country        String   @default("GN")
+  isPublicBuyer  Boolean  @default(false)
+  sourceUrl      String?
+  sourceLabel    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  contacts     Contact[]
+  opportunities Opportunity[]
+
+  @@index([name])
+  @@index([sector])
+  @@map("accounts")
+}
+
+// ─── CRM — Contacts (professionnels uniquement) ───────────────────────────────
+
+model Contact {
+  id                 String   @id @default(cuid())
+  firstName          String?
+  lastName           String?
+  professionalEmail  String?
+  professionalPhone  String?
+  jobTitle           String?
+  responsibility     String?
+  organizationName   String?
+  institutionalPage  String?
+  linkedinPublic     String?
+  sourceUrl          String?
+  sourceLabel        String?
+  validationStatus   String   @default("pending") // pending, validated, rejected
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  accountId   String?
+  account     Account?  @relation(fields: [accountId], references: [id])
+  opportunities Opportunity[]
+
+  @@index([professionalEmail])
+  @@index([accountId])
+  @@map("contacts")
+}
+
+// ─── CRM — Opportunités ───────────────────────────────────────────────────────
+
+model Opportunity {
+  id               String   @id @default(cuid())
+  title            String
+  stage            String   @default("prospect") // prospect, qualification, proposal, negotiation, won, lost
+  amount           Float    @default(0)
+  probability      Float    @default(0)  // 0-1
+  expectedCloseDate DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  accountId   String
+  account     Account   @relation(fields: [accountId], references: [id])
+  contactId   String?
+  contact     Contact?  @relation(fields: [contactId], references: [id])
+  tenderId    String?
+  tender      Tender?   @relation(fields: [tenderId], references: [id])
+
+  @@index([stage])
+  @@index([accountId])
+  @@map("opportunities")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
   id        String   @id @default(cuid())
+  type      String   // deadline, new_tender, score, match, system, win, competitor
   title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  message   String
+  isRead    Boolean  @default(false)
+  priority  String   @default("medium") // critical, high, medium, low
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tenderId  String?
+  tender    Tender?  @relation(fields: [tenderId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@map("notifications")
+}
+
+// ─── Favoris ──────────────────────────────────────────────────────────────────
+
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tenderId  String
+  tender    Tender   @relation(fields: [tenderId], references: [id])
+
+  @@unique([userId, tenderId])
+  @@map("favorites")
+}
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // pdf, xlsx, docx, zip, image
+  category    String?  // tender, proposal, contract, report, other
+  size        Int      @default(0)    // bytes
+  status      String   @default("pending") // pending, indexed, error
+  uploadedAt  DateTime @default(now())
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  tenderId   String?
+  tender     Tender?  @relation(fields: [tenderId], references: [id])
+
+  @@index([userId])
+  @@index([tenderId])
+  @@map("documents")
+}
+
+// ─── Journal d'audit ─────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // 26 types d'actions (tender_view, tender_create, etc.)
+  resource  String?
+  details   String?  // JSON string
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  tenderId  String?
+  tender    Tender?  @relation(fields: [tenderId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─── Webhooks ─────────────────────────────────────────────────────────────────
+
+model Webhook {
+  id          String   @id @default(cuid())
+  url         String
+  events      String   // JSON array d'événements
+  description String   @default("")
+  secret      String?
+  isActive    Boolean  @default(true)
+  lastTriggeredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("webhooks")
+}
+
+// ─── Sources de veille (Crawler) ──────────────────────────────────────────────
+
+model CrawlSource {
+  id              String   @id @default(cuid())
+  name            String
+  url             String
+  type            String   // government, enterprise, international, media
+  sector          String?
+  region          String?
+  refreshInterval Int      @default(3600) // secondes
+  status          String   @default("active") // active, paused, error, maintenance
+  description     String?
+  health          Float    @default(100) // 0-100
+  successRate     Float    @default(0)   // 0-1
+  lastCrawledAt   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("crawl_sources")
+}
+
+// ─── Prompts générés ──────────────────────────────────────────────────────────
+
+model GeneratedPrompt {
+  id         String   @id @default(cuid())
+  tenderId   String
+  tenderRef  String
+  promptType String
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([tenderId])
+  @@index([promptType])
+  @@map("generated_prompts")
+}
+
+// ─── Abonnement / Facturation ─────────────────────────────────────────────────
+
+model Subscription {
+  id              String   @id @default(cuid())
+  plan            String   @default("starter") // starter, pro, enterprise
+  status          String   @default("active") // active, past_due, canceled
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("subscriptions")
 }

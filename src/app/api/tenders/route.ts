@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { mockTenders } from "@/lib/mock-data";
 
 // ─── GET /api/tenders ─────────────────────────────────────────────────────────
 // Liste les appels d'offres avec pagination et filtres
@@ -13,69 +15,124 @@ export async function GET(request: Request) {
   const status = searchParams.get("status");
   const q = searchParams.get("q");
 
-  // Mock data — in production, this would query Prisma
-  const tenders = [
-    {
-      id: "t-001", reference: "AO/MTP/2026/001",
-      title: "Construction de la route Nationale 1 — Section Conakry-Kindia",
-      sector: "BTP", region: "Conakry", status: "new",
-      authority: "Ministère des Travaux Publics",
-      budgetMin: 20_000_000_000, budgetMax: 30_000_000_000,
-      deadline: "2026-07-15", score: 72,
-    },
-    {
-      id: "t-002", reference: "AO/DGSI/2026/003",
-      title: "Fourniture d'équipements informatiques pour l'administration publique",
-      sector: "IT / Digital", region: "Conakry", status: "qualifying",
-      authority: "Direction Générale des Systèmes d'Information",
-      budgetMin: 5_000_000_000, budgetMax: 10_000_000_000,
-      deadline: "2026-06-30", score: 85,
-    },
-    {
-      id: "t-003", reference: "AO/EDG/2026/007",
-      title: "Électrification rurale — 50 villages dans la préfecture de Labé",
-      sector: "Énergie", region: "Labé", status: "qualified",
-      authority: "Énergie de Guinée (EDG)",
-      budgetMin: 8_000_000_000, budgetMax: 15_000_000_000,
-      deadline: "2026-08-01", score: 68,
-    },
-    {
-      id: "t-004", reference: "AO/MMG/2026/012",
-      title: "Services de consulting en gouvernance minière",
-      sector: "Conseil", region: "Conakry", status: "go",
-      authority: "Ministère des Mines et de la Géologie",
-      budgetMin: 2_000_000_000, budgetMax: 4_000_000_000,
-      deadline: "2026-05-20", score: 78,
-    },
-    {
-      id: "t-005", reference: "AO/MS/2026/005",
-      title: "Construction du Centre Hospitalier Régional de Nzérékoré",
-      sector: "Santé", region: "Nzérékoré", status: "new",
-      authority: "Ministère de la Santé",
-      budgetMin: 15_000_000_000, budgetMax: 22_000_000_000,
-      deadline: "2026-09-15", score: 62,
-    },
-  ];
+  // Build Prisma where clause
+  const where: Record<string, unknown> = {};
 
-  // Apply filters
-  let filtered = tenders;
-  if (sector) filtered = filtered.filter((t) => t.sector === sector);
-  if (region) filtered = filtered.filter((t) => t.region === region);
-  if (status) filtered = filtered.filter((t) => t.status === status);
+  if (sector) where.sector = sector;
+  if (region) where.region = region;
+  if (status) where.status = status;
   if (q) {
-    const lower = q.toLowerCase();
-    filtered = filtered.filter(
-      (t) => t.title.toLowerCase().includes(lower) || t.authority.toLowerCase().includes(lower)
-    );
+    where.OR = [
+      { title: { contains: q } },
+      { publishingAuthority: { contains: q } },
+    ];
   }
 
-  // Pagination
-  const total = filtered.length;
-  const start = (page - 1) * limit;
-  const paginated = filtered.slice(start, start + limit);
+  let tenders: Record<string, unknown>[] = [];
+  let total = 0;
+  let fromDb = false;
+
+  try {
+    // Try Prisma first
+    const [dbTenders, dbCount] = await Promise.all([
+      db.tender.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      db.tender.count({ where }),
+    ]);
+
+    if (dbCount > 0) {
+      tenders = dbTenders.map((t) => ({
+        id: t.id,
+        reference: t.reference,
+        title: t.title,
+        sector: t.sector,
+        region: t.region,
+        status: t.status,
+        authority: t.publishingAuthority,
+        budgetMin: t.budgetMin,
+        budgetMax: t.budgetMax,
+        deadline: t.deadlineDate.toISOString().split("T")[0],
+        score: Math.round(
+          (t.priorityScore * 0.3 +
+            t.compatibilityScore * 0.3 +
+            t.feasibilityScore * 0.25 +
+            t.winProbabilityScore * 0.15) *
+            100
+        ),
+        tenderType: t.tenderType,
+        publishingAuthority: t.publishingAuthority,
+        sourceUrl: t.sourceUrl,
+        priorityScore: t.priorityScore,
+        compatibilityScore: t.compatibilityScore,
+        feasibilityScore: t.feasibilityScore,
+        winProbabilityScore: t.winProbabilityScore,
+        strategyRecommendation: t.strategyRecommendation,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      }));
+      total = dbCount;
+      fromDb = true;
+    }
+  } catch (error) {
+    console.error("[Tenders] Erreur base de données:", error);
+  }
+
+  // Fallback to mock data if DB returned nothing
+  if (!fromDb) {
+    let filtered = mockTenders.map((t) => ({
+      id: t.id,
+      reference: t.reference,
+      title: t.title,
+      sector: t.sector,
+      region: t.region,
+      status: t.status,
+      authority: t.publishing_authority,
+      budgetMin: t.budget_min,
+      budgetMax: t.budget_max,
+      deadline: t.deadline_date,
+      score: Math.round(
+        (t.priority_score * 0.3 +
+          t.compatibility_score * 0.3 +
+          t.feasibility_score * 0.25 +
+          t.win_probability_score * 0.15) *
+          100
+      ),
+      tenderType: t.tender_type,
+      publishingAuthority: t.publishing_authority,
+      sourceUrl: t.source_url,
+      priorityScore: t.priority_score,
+      compatibilityScore: t.compatibility_score,
+      feasibilityScore: t.feasibility_score,
+      winProbabilityScore: t.win_probability_score,
+      strategyRecommendation: t.strategy_recommendation,
+      createdAt: t.created_at,
+      updatedAt: t.updated_at,
+    }));
+
+    // Apply filters
+    if (sector) filtered = filtered.filter((t) => t.sector === sector);
+    if (region) filtered = filtered.filter((t) => t.region === region);
+    if (status) filtered = filtered.filter((t) => t.status === status);
+    if (q) {
+      const lower = q.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          (t.title as string).toLowerCase().includes(lower) ||
+          (t.publishingAuthority as string).toLowerCase().includes(lower)
+      );
+    }
+
+    total = filtered.length;
+    const start = (page - 1) * limit;
+    tenders = filtered.slice(start, start + limit);
+  }
 
   return NextResponse.json({
-    data: paginated,
+    data: tenders,
     pagination: {
       page,
       limit,

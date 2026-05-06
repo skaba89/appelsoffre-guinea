@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 import { mockTenders } from "@/lib/mock-data";
 
 // ─── GET /api/analytics/sectors ────────────────────────────────────────────────
@@ -18,6 +19,45 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Normalize tender data for aggregation
+  interface TenderData {
+    sector: string;
+    priorityScore: number;
+    budgetMin: number;
+    budgetMax: number;
+    status: string;
+  }
+
+  let tendersData: TenderData[] = [];
+
+  try {
+    // Try from DB first
+    const dbTenders = await db.tender.findMany();
+
+    if (dbTenders.length > 0) {
+      tendersData = dbTenders.map((t) => ({
+        sector: t.sector,
+        priorityScore: t.priorityScore,
+        budgetMin: t.budgetMin,
+        budgetMax: t.budgetMax,
+        status: t.status,
+      }));
+    }
+  } catch (error) {
+    console.error("[Analytics Sectors] Erreur base de données:", error);
+  }
+
+  // Fallback to mock data
+  if (tendersData.length === 0) {
+    tendersData = mockTenders.map((t) => ({
+      sector: t.sector,
+      priorityScore: t.priority_score,
+      budgetMin: t.budget_min,
+      budgetMax: t.budget_max,
+      status: t.status,
+    }));
+  }
+
   // Aggregate by sector
   const sectorMap = new Map<string, {
     sector: string;
@@ -28,7 +68,7 @@ export async function GET(request: NextRequest) {
     activeCount: number;
   }>();
 
-  mockTenders.forEach((t) => {
+  tendersData.forEach((t) => {
     const existing = sectorMap.get(t.sector) || {
       sector: t.sector,
       tenderCount: 0,
@@ -39,8 +79,8 @@ export async function GET(request: NextRequest) {
     };
 
     existing.tenderCount += 1;
-    existing.totalScore += t.priority_score * 100;
-    existing.totalBudget += (t.budget_min + t.budget_max) / 2;
+    existing.totalScore += t.priorityScore * 100;
+    existing.totalBudget += (t.budgetMin + t.budgetMax) / 2;
     if (t.status === "won") existing.wonCount += 1;
     if (!["expired", "won", "lost"].includes(t.status)) existing.activeCount += 1;
 
